@@ -114,18 +114,32 @@ $("addItemBtn").onclick = () => {
   renderCart();
 };
 
+// ارزش غذایی یک محصول (با احتساب تعداد)
+function itemNut(c) {
+  const p = [];
+  if (c.calories) p.push(`کالری ${fa(c.calories * c.qty)}`);
+  if (c.protein)  p.push(`پروتئین ${fa(c.protein * c.qty)}گ`);
+  if (c.carbs)    p.push(`کربوهیدرات ${fa(c.carbs * c.qty)}گ`);
+  if (c.fat)      p.push(`چربی ${fa(c.fat * c.qty)}گ`);
+  if (c.fiber)    p.push(`فیبر ${fa(c.fiber * c.qty)}گ`);
+  return p.length ? p.join(" • ") : "بدون اطلاعات ارزش غذایی";
+}
+
 function renderCart() {
   const box = $("itemsList");
   if (!CART.length) { box.innerHTML = `<div class="muted" style="padding:6px 0">هنوز محصولی اضافه نشده.</div>`; }
   else {
     box.innerHTML = CART.map((c, i) => `
-      <div class="item-line">
-        <b style="flex:1">${c.name}</b>
-        <span class="muted">${fa(c.price)} ت</span>
-        <span>×</span>
-        <span class="pill">${fa(c.qty)}</span>
-        <span class="muted">= ${fa(c.price * c.qty)} ت</span>
-        <button class="btn danger sm" onclick="removeItem(${i})">حذف</button>
+      <div class="item-line" style="flex-direction:column;align-items:stretch;gap:6px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <b style="flex:1">${c.name}</b>
+          <span class="muted">${fa(c.price)} ت</span>
+          <span>×</span>
+          <span class="pill">${fa(c.qty)}</span>
+          <span class="muted">= ${fa(c.price * c.qty)} ت</span>
+          <button class="btn danger sm" onclick="removeItem(${i})">حذف</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">${itemNut(c)}</div>
       </div>`).join("");
   }
   const t = CART.reduce((a, c) => ({
