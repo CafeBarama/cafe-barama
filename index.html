@@ -87,6 +87,7 @@
       <button data-tab="orders">سفارش‌ها</button>
       <button data-tab="products">محصولات</button>
       <button data-tab="menu">منو و ارسال</button>
+      <button data-tab="inventory">اقلام <span id="invNavBadge"></span></button>
     </nav>
   </div>
 </header>
@@ -208,6 +209,29 @@
       </div>
     </div>
     <div class="card" id="menuView"></div>
+  </section>
+
+  <!-- ============ اقلام / موجودی ============ -->
+  <section id="tab-inventory" class="tab">
+    <div class="card">
+      <div class="row">
+        <div><h2>اقلام و موجودی (آخر شیفت)</h2><div class="sub" style="margin:0">وضعیت هر قلم را مشخص کن.</div></div>
+        <div class="spacer"></div>
+        <input id="invNewName" placeholder="نام قلم جدید…" style="max-width:200px">
+        <button class="btn ghost" id="invAddBtn">+ افزودن</button>
+      </div>
+      <div id="invBanner" class="banner" style="display:none;background:#fff5e8;color:#a5632a;border-color:#f3d9a8;margin-top:14px"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn wa" id="invWaBtn">ارسال لیست تهیه در واتساپ</button>
+        <button class="btn gray sm" id="invResetBtn">همه «موجود»</button>
+        <div class="spacer"></div>
+        <button class="btn ghost sm" id="invNotifyBtn">🔔 فعال‌کردن هشدار</button>
+      </div>
+    </div>
+    <div class="card">
+      <div id="inventoryList"></div>
+      <div class="empty" id="invEmpty" style="display:none">هنوز قلمی اضافه نشده. از بالا «افزودن» کن.</div>
+    </div>
   </section>
 </main>
 

@@ -61,6 +61,7 @@ document.querySelectorAll("#nav button").forEach(b => {
     $("tab-" + b.dataset.tab).classList.add("active");
     if (b.dataset.tab === "orders") loadOrders();
     if (b.dataset.tab === "menu") renderMenu();
+    if (b.dataset.tab === "inventory") loadInventory();
   };
 });
 
@@ -504,6 +505,87 @@ function menuText() {
 $("waMenuBtn").onclick = () => openWhatsApp($("wa_to").value.trim(), menuText());
 
 /* ============================================================
+   اقلام / موجودی
+   ============================================================ */
+const INV_STATES = [
+  { key:"موجود",       cls:"#2e7d6b" },
+  { key:"نصف",         cls:"#c98a2b" },
+  { key:"رو به اتمام", cls:"#d97a2b" },
+  { key:"اتمام",       cls:"#d8584f" },
+];
+const INV_BG = { "نصف":"#fff5e8", "رو به اتمام":"#ffeedd", "اتمام":"#fdecea" };
+let INVENTORY = [];
+
+async function loadInventory(){
+  if (!db) return;
+  const { data, error } = await db.from("inventory").select("*").order("sort").order("name");
+  if (error) { console.error(error); return toast("خطا — جدول inventory ساخته شده؟"); }
+  INVENTORY = data || [];
+  renderInventory();
+}
+function invLow(){ return INVENTORY.filter(i => i.status && i.status !== "موجود"); }
+
+function renderInventory(){
+  $("invEmpty").style.display = INVENTORY.length ? "none" : "block";
+  $("inventoryList").innerHTML = INVENTORY.map(i => {
+    const buttons = INV_STATES.map(s => `<button onclick="setInvStatus(${i.id},'${s.key}')"
+      style="border:1px solid ${s.cls};background:${i.status===s.key?s.cls:'#fff'};color:${i.status===s.key?'#fff':s.cls};
+      font-family:inherit;font-size:12.5px;padding:6px 11px;border-radius:10px;cursor:pointer;font-weight:600;white-space:nowrap">${s.key}</button>`).join("");
+    return `<div class="item-line" style="flex-wrap:wrap;background:${INV_BG[i.status]||'transparent'};border-radius:10px;padding:10px 8px">
+      <b style="flex:1;min-width:120px">${i.name}</b>
+      <div class="row" style="gap:6px">${buttons}</div>
+      <button class="btn danger sm" onclick="delInv(${i.id})">حذف</button>
+    </div>`;
+  }).join("");
+  const low = invLow();
+  $("invNavBadge").textContent = low.length ? " ("+fa(low.length)+")" : "";
+  $("invNavBadge").style.color = "var(--danger)";
+  const b = $("invBanner");
+  if (low.length) { b.style.display="block";
+    b.innerHTML = `⚠️ <b>${fa(low.length)} قلم</b> نیاز به تهیه دارد: ` + low.map(i=>`${i.name} (${i.status})`).join("، ");
+  } else b.style.display = "none";
+}
+
+window.setInvStatus = async (id, status) => {
+  const it = INVENTORY.find(x=>x.id===id); if (it) it.status = status;
+  renderInventory();
+  const { error } = await db.from("inventory").update({ status, updated_at:new Date().toISOString() }).eq("id", id);
+  if (error) { console.error(error); return toast("خطا در ذخیره"); }
+  if (status !== "موجود") notifyLow(it);
+};
+$("invAddBtn").onclick = async () => {
+  const name = $("invNewName").value.trim(); if (!name) return toast("نام قلم را بنویس");
+  const { error } = await db.from("inventory").insert({ name, status:"موجود" });
+  if (error) { console.error(error); return toast("خطا — جدول inventory ساخته شده؟"); }
+  $("invNewName").value=""; toast("✓ اضافه شد"); loadInventory();
+};
+$("invNewName").addEventListener("keydown", e => { if (e.key==="Enter") $("invAddBtn").click(); });
+window.delInv = async (id) => { if (!confirm("این قلم حذف شود؟")) return;
+  await db.from("inventory").delete().eq("id", id); toast("حذف شد"); loadInventory(); };
+$("invResetBtn").onclick = async () => {
+  if (!confirm("وضعیت همهٔ اقلام «موجود» شود؟")) return;
+  await db.from("inventory").update({ status:"موجود" }).neq("status","موجود");
+  toast("✓ به‌روز شد"); loadInventory();
+};
+function invText(){
+  const low = invLow();
+  let s = "🛒 لیست تهیهٔ کافه باراما\n\n";
+  if (!low.length) return s + "همهٔ اقلام موجود است ✅";
+  low.forEach(i => s += `• ${i.name} — ${i.status}\n`);
+  return s;
+}
+$("invWaBtn").onclick = () => openWhatsApp("", invText());
+$("invNotifyBtn").onclick = () => {
+  if (!("Notification" in window)) return toast("مرورگر هشدار را پشتیبانی نمی‌کند");
+  Notification.requestPermission().then(p => toast(p==="granted" ? "✓ هشدار فعال شد" : "هشدار اجازه داده نشد"));
+};
+function notifyLow(it){
+  try { if ("Notification" in window && Notification.permission==="granted")
+    new Notification("کافه باراما — موجودی", { body:`${it.name}: ${it.status}` });
+  } catch(e){}
+}
+
+/* ============================================================
    شروع
    ============================================================ */
 if (typeof DEFAULT_WHATSAPP !== "undefined" && DEFAULT_WHATSAPP) $("wa_to").value = DEFAULT_WHATSAPP;
@@ -511,3 +593,4 @@ if (typeof jalaliDatepicker !== "undefined") jalaliDatepicker.startWatch({ time:
 renderCart();
 loadProducts();
 loadCustomers();
+loadInventory();

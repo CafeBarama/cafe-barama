@@ -107,3 +107,18 @@ insert into products (name, name_en, category, price, calories, description) val
 ('پاستا چیکن آلفردو تنوری',      'Grilled Chicken Alfredo Pasta',  'پاستا',            595000, null,'سس خامه‌ای و دود'),
 ('شیر نوتلا',                    'Nutella Milk',                   'شیک و شکلات',      250000, null,'شکلاتی، خامه‌ای و دل‌چسب'),
 ('پنکیک بادام زمینی و موز',      'Peanut Butter Banana Pancake',   'پنکیک',            395000, null,'مقوی و سیرکننده');
+
+-- ============================================================
+--  اقلام / موجودی (کنترل آخر شیفت)
+-- ============================================================
+create table if not exists inventory (
+  id         bigint generated always as identity primary key,
+  name       text not null,
+  category   text,
+  status     text default 'موجود',   -- موجود / نصف / رو به اتمام / اتمام
+  sort       int default 0,
+  updated_at timestamptz default now()
+);
+alter table inventory enable row level security;
+drop policy if exists "public_inventory" on inventory;
+create policy "public_inventory" on inventory for all using (true) with check (true);
