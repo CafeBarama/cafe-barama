@@ -24,6 +24,15 @@ function todayISO() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
+// تبدیل تاریخ میلادی (ISO) به شمسی
+function jalali(iso) {
+  if (!iso) return "";
+  const d = new Date(String(iso).length <= 10 ? iso + "T00:00:00" : iso);
+  if (isNaN(d)) return toFa(iso);
+  try {
+    return new Intl.DateTimeFormat("fa-IR-u-ca-persian", { year:"numeric", month:"2-digit", day:"2-digit" }).format(d);
+  } catch (e) { return toFa(iso); }
+}
 
 let PRODUCTS = [];   // کش محصولات
 let CART = [];       // اقلام سفارش جاری
@@ -243,29 +252,68 @@ async function loadOrders() {
   if (prod) rows = rows.filter(r => (r.items||[]).some(it => (it.name||"").toLowerCase().includes(prod)));
 
   LAST_ORDERS = rows;
-  const tb = $("ordersTable").querySelector("tbody");
-  $("ordersCount").textContent = `${fa(rows.length)} سفارش`;
   $("ordersEmpty").style.display = rows.length ? "none" : "block";
-  tb.innerHTML = rows.map(r => {
-    const items = (r.items||[]).map(it => `${it.name}×${toFa(it.qty)}`).join("، ");
-    const cal = (r.items||[]).reduce((a,it)=>a+(+it.calories||0)*(+it.qty||0),0);
-    const stars = r.snapp_rating ? "★".repeat(r.snapp_rating) + `<span class="muted">${"☆".repeat(5-r.snapp_rating)}</span>` : "-";
-    return `<tr>
-      <td>${toFa(r.order_date||"")}</td>
-      <td><b>${r.customer_name||""}</b>${r.address?`<div class="muted" style="font-size:12px">${r.address}</div>`:""}</td>
-      <td>${toFa(r.phone||"")}</td>
-      <td style="max-width:280px">${items}${r.notes?`<div class="muted" style="font-size:12px">یادداشت: ${r.notes}</div>`:""}</td>
-      <td>${fa(r.total)}</td>
-      <td>${cal?`<span class="badge-cal">${fa(cal)}</span>`:"-"}</td>
-      <td style="color:var(--accent)">${stars}${r.snapp_comment?`<div class="muted" style="font-size:12px">${r.snapp_comment}</div>`:""}</td>
-      <td class="right">
-        <button class="btn ghost sm" onclick="editSnapp(${r.id})">امتیاز اسنپ</button>
-        <button class="btn wa sm" onclick="waOrder(${r.id})">واتساپ</button>
-        <button class="btn danger sm" onclick="delOrder(${r.id})">حذف</button>
-      </td>
-    </tr>`;
+
+  // گروه‌بندی بر اساس شماره موبایل (و اگر نبود، نام)
+  const groups = {};
+  rows.forEach(r => {
+    const phoneKey = (r.phone||"").replace(/\D/g,"");
+    const key = phoneKey || ("نام:"+(r.customer_name||"").trim());
+    if (!groups[key]) groups[key] = { name:r.customer_name||"—", phone:r.phone||"", orders:[], total:0 };
+    if ((!groups[key].name || groups[key].name==="—") && r.customer_name) groups[key].name = r.customer_name;
+    if (!groups[key].phone && r.phone) groups[key].phone = r.phone;
+    groups[key].orders.push(r);
+    groups[key].total += (+r.total||0);
+  });
+  const list = Object.values(groups).sort((a,b)=> b.orders.length - a.orders.length);
+  $("ordersCount").textContent = `${fa(list.length)} مشتری • ${fa(rows.length)} سفارش`;
+
+  $("ordersList").innerHTML = list.map((g,gi)=>{
+    const last = g.orders[0];
+    return `<div style="border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden">
+      <div onclick="toggleCust(${gi})" style="display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer">
+        <span id="cust-arrow-${gi}" style="color:var(--muted);font-size:12px">◀</span>
+        <div style="flex:1">
+          <b>${g.name}</b>
+          <div class="muted" style="font-size:12.5px">${toFa(g.phone||"—")} • ${fa(g.orders.length)} سفارش • مجموع ${fa(g.total)} ت</div>
+        </div>
+        <span class="muted" style="font-size:12px">آخرین: ${jalali(last&&last.order_date)}</span>
+      </div>
+      <div id="cust-body-${gi}" style="display:none;border-top:1px solid var(--line);background:#fafbfd;padding:4px 16px">
+        ${g.orders.map(orderRow).join("")}
+      </div>
+    </div>`;
   }).join("");
 }
+
+// یک سفارش داخل لیست بازشدهٔ مشتری
+function orderRow(r){
+  const items = (r.items||[]).map(it => `${it.name}×${toFa(it.qty)}`).join("، ");
+  const cal = (r.items||[]).reduce((a,it)=>a+(+it.calories||0)*(+it.qty||0),0);
+  const stars = r.snapp_rating ? "★".repeat(r.snapp_rating)+"☆".repeat(5-r.snapp_rating) : "";
+  return `<div style="padding:11px 0;border-bottom:1px dashed var(--line)">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <span class="muted" style="font-size:12.5px">${jalali(r.order_date)}</span>
+      <b style="flex:1;min-width:150px">${items||"—"}</b>
+      <span><b>${fa(r.total)}</b> ت</span>
+      ${cal?`<span class="badge-cal">${fa(cal)} کالری</span>`:""}
+    </div>
+    ${r.address?`<div class="muted" style="font-size:12px;margin-top:3px">آدرس: ${r.address}</div>`:""}
+    ${r.notes?`<div class="muted" style="font-size:12px;margin-top:3px">یادداشت: ${r.notes}</div>`:""}
+    ${(r.snapp_rating||r.snapp_comment)?`<div style="font-size:12px;margin-top:3px;color:var(--accent)">امتیاز اسنپ: ${stars} ${r.snapp_comment||""}</div>`:""}
+    <div class="row" style="margin-top:8px;gap:8px">
+      <button class="btn ghost sm" onclick="editSnapp(${r.id})">امتیاز اسنپ</button>
+      <button class="btn wa sm" onclick="waOrder(${r.id})">واتساپ</button>
+      <button class="btn danger sm" onclick="delOrder(${r.id})">حذف</button>
+    </div>
+  </div>`;
+}
+window.toggleCust = (gi)=>{
+  const b=$("cust-body-"+gi), a=$("cust-arrow-"+gi); if(!b) return;
+  const open = b.style.display==="none";
+  b.style.display = open ? "block" : "none";
+  a.textContent = open ? "▼" : "◀";
+};
 
 window.delOrder = async (id) => {
   if (!confirm("این سفارش حذف شود؟")) return;
@@ -288,7 +336,7 @@ const snappDlg = $("snappDialog");
 window.editSnapp = (id) => {
   const r = LAST_ORDERS.find(x => x.id === id); if (!r) return;
   $("sd_id").value = r.id;
-  $("sd_customer").textContent = `${r.customer_name || ""} — ${toFa(r.order_date || "")}`;
+  $("sd_customer").textContent = `${r.customer_name || ""} — ${jalali(r.order_date)}`;
   $("sd_rating").value = r.snapp_rating != null ? String(r.snapp_rating) : "";
   $("sd_comment").value = r.snapp_comment || "";
   snappDlg.showModal();
@@ -314,7 +362,7 @@ $("exportCsv").onclick = () => {
   if (!LAST_ORDERS.length) return toast("داده‌ای برای خروجی نیست");
   const head = ["تاریخ","نام","تلفن","آدرس","محصولات","جمع(تومان)","یادداشت","امتیاز اسنپ","توضیحات اسنپ"];
   const lines = LAST_ORDERS.map(r => [
-    r.order_date, r.customer_name, r.phone, r.address,
+    jalali(r.order_date), r.customer_name, r.phone, r.address,
     (r.items||[]).map(it=>`${it.name} x${it.qty}`).join(" | "), r.total, r.notes,
     r.snapp_rating, r.snapp_comment
   ].map(v => `"${String(v??"").replace(/"/g,'""')}"`).join(","));
