@@ -33,6 +33,21 @@ function jalali(iso) {
     return new Intl.DateTimeFormat("fa-IR-u-ca-persian", { year:"numeric", month:"2-digit", day:"2-digit" }).format(d);
   } catch (e) { return toFa(iso); }
 }
+// امروز به شمسی (مقدار پیش‌فرض کادر تاریخ)
+function todayShamsiStr() {
+  try { const d=new Date(); const j=jalaali.toJalaali(d.getFullYear(), d.getMonth()+1, d.getDate());
+    return `${j.jy}/${String(j.jm).padStart(2,"0")}/${String(j.jd).padStart(2,"0")}`;
+  } catch (e) { return todayISO(); }
+}
+// تاریخ شمسی واردشده → میلادی (ISO) برای ذخیره
+function shamsiToISO(s) {
+  if (!s) return todayISO();
+  s = String(s).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+  const m = s.match(/(\d{3,4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+  if (!m || typeof jalaali === "undefined") return todayISO();
+  const g = jalaali.toGregorian(+m[1], +m[2], +m[3]);
+  return `${g.gy}-${String(g.gm).padStart(2,"0")}-${String(g.gd).padStart(2,"0")}`;
+}
 
 let PRODUCTS = [];   // کش محصولات
 let CART = [];       // اقلام سفارش جاری
@@ -108,7 +123,7 @@ $("o_name").addEventListener("input", () => {
 /* ============================================================
    ثبت سفارش
    ============================================================ */
-$("o_date").value = todayISO();
+$("o_date").value = todayShamsiStr();
 
 $("addItemBtn").onclick = () => {
   const name = $("o_product").value.trim();
@@ -170,7 +185,7 @@ function orderTotalPrice() { return CART.reduce((a, c) => a + c.price * c.qty, 0
 function clearOrderForm() {
   CART = []; renderCart();
   $("o_name").value = ""; $("o_phone").value = ""; $("o_address").value = "";
-  $("o_notes").value = ""; $("o_date").value = todayISO();
+  $("o_notes").value = ""; $("o_date").value = todayShamsiStr();
   $("o_snapp_rating").value = ""; $("o_snapp_comment").value = "";
 }
 $("clearOrderBtn").onclick = clearOrderForm;
@@ -181,7 +196,7 @@ $("saveOrderBtn").onclick = async () => {
   if (!name) return toast("نام مشتری را وارد کنید");
   if (!CART.length) return toast("حداقل یک محصول اضافه کنید");
   const payload = {
-    order_date: $("o_date").value || todayISO(),
+    order_date: shamsiToISO($("o_date").value),
     customer_name: name,
     phone: $("o_phone").value.trim(),
     address: $("o_address").value.trim(),
@@ -492,6 +507,7 @@ $("waMenuBtn").onclick = () => openWhatsApp($("wa_to").value.trim(), menuText())
    شروع
    ============================================================ */
 if (typeof DEFAULT_WHATSAPP !== "undefined" && DEFAULT_WHATSAPP) $("wa_to").value = DEFAULT_WHATSAPP;
+if (typeof jalaliDatepicker !== "undefined") jalaliDatepicker.startWatch({ time:false, persianDigit:true, autoHide:true });
 renderCart();
 loadProducts();
 loadCustomers();

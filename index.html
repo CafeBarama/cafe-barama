@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>کافه باراما — مدیریت مشتریان و سفارش‌ها</title>
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
 <style>
   :root{
     --bg:#f6f7fb; --card:#ffffff; --ink:#1f2430; --muted:#7a8194;
@@ -101,7 +102,7 @@
       <h2>ثبت سفارش جدید</h2>
       <div class="sub">اطلاعات مشتری و محصولات سفارش را وارد کنید.</div>
       <div class="grid g3">
-        <div><label>تاریخ</label><input type="date" id="o_date"></div>
+        <div><label>تاریخ</label><input type="text" id="o_date" data-jdp data-jdp-only-date autocomplete="off" readonly placeholder="انتخاب تاریخ" style="background:#fff;cursor:pointer"></div>
         <div><label>نام مشتری *</label><input id="o_name" list="customersList" autocomplete="off" placeholder="نام و نام خانوادگی"><datalist id="customersList"></datalist></div>
         <div><label>تلفن</label><input id="o_phone" placeholder="09xxxxxxxxx" inputmode="numeric"></div>
       </div>
@@ -264,6 +265,8 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jalaali-js@1.2.6/dist/jalaali.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
 </body>
