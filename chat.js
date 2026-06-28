@@ -45,6 +45,73 @@ const UNREAD = {};        // {channel_id: count}
 const ME_KEY = "barama_chat_me";
 
 /* ============================================================
+   صدا و نوتیفیکیشن
+   ============================================================ */
+let audioCtx = null;
+let soundOn = localStorage.getItem("barama_chat_sound") !== "off";
+let lastSound = 0;
+
+function unlockAudio(){
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  } catch(e){}
+}
+
+// صدای «دینگ» دو‌نتی بدون فایل (Web Audio)
+function playDing(){
+  if (!soundOn) return;
+  const now = Date.now();
+  if (now - lastSound < 1200) return;     // جلوگیری از تکرار سریع
+  lastSound = now;
+  try {
+    unlockAudio();
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    [[880, 0], [1320, 0.13]].forEach(([f, dt]) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = f;
+      o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.0001, t0 + dt);
+      g.gain.exponentialRampToValueAtTime(0.35, t0 + dt + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.22);
+      o.start(t0 + dt); o.stop(t0 + dt + 0.25);
+    });
+  } catch(e){}
+}
+
+function msgPreview(m){
+  if (m.type === "image") return "📷 عکس";
+  if (m.type === "voice") return "🎤 پیام صوتی";
+  if (m.type === "list")  return "🛒 لیست خرید";
+  return m.text || "";
+}
+
+// نوتیفیکیشن سیستمی با عنوان «کافه باراما»
+function notify(m, channelName){
+  if (!m) return;
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const title = "کافه باراما";
+  const body  = `${m.staff_name || ""}${channelName ? " · " + channelName : ""}: ${msgPreview(m)}`;
+  const opts  = { body, icon:"icon-192.png", badge:"icon-192.png", tag:"barama-chat", renotify:true, dir:"rtl", lang:"fa" };
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.ready){
+      navigator.serviceWorker.ready
+        .then(reg => reg.showNotification(title, opts))
+        .catch(() => { new Notification(title, opts); });
+    } else {
+      new Notification(title, opts);
+    }
+  } catch(e){}
+}
+
+function askNotifyPermission(){
+  if ("Notification" in window && Notification.permission === "default"){
+    try { Notification.requestPermission().catch(()=>{}); } catch(e){}
+  }
+}
+
+/* ============================================================
    ورود
    ============================================================ */
 async function loadStaff(){
@@ -57,6 +124,8 @@ async function loadStaff(){
 }
 
 $("loginBtn").onclick = () => {
+  unlockAudio();                 // قفل‌گشایی صدا با تعامل کاربر
+  askNotifyPermission();         // درخواست اجازهٔ نوتیفیکیشن
   const id = +$("loginName").value;
   const pin = $("loginPin").value.trim();
   const s = STAFF.find(x => x.id === id);
@@ -66,6 +135,17 @@ $("loginBtn").onclick = () => {
   localStorage.setItem(ME_KEY, JSON.stringify(ME));
   startApp();
 };
+
+// دکمهٔ روشن/خاموش صدا
+function refreshSoundBtn(){ $("soundBtn").textContent = soundOn ? "🔔" : "🔕"; }
+$("soundBtn").onclick = () => {
+  soundOn = !soundOn;
+  localStorage.setItem("barama_chat_sound", soundOn ? "on" : "off");
+  refreshSoundBtn();
+  if (soundOn){ unlockAudio(); playDing(); toast("صدا روشن شد"); }
+  else toast("صدا خاموش شد");
+};
+refreshSoundBtn();
 $("loginPin").addEventListener("keydown", e => { if (e.key === "Enter") $("loginBtn").click(); });
 
 // افزودن نیرو
@@ -98,6 +178,7 @@ async function startApp(){
   $("login").style.display = "none";
   $("app").hidden = false;
   $("hWho").textContent = ME.name;
+  askNotifyPermission();
   await loadChannels();
   if (CHANNELS.length) selectChannel(CHANNELS[0].id);
   if (POLL_T) clearInterval(POLL_T);
@@ -211,8 +292,14 @@ async function poll(){
   const { data, error } = await q;
   if (error){ console.error(error); return; }
   const stick = nearBottom();
+  // پیام‌های واقعاً جدیدِ دیگران (قبل از افزودن به SEEN)
+  const incoming = (data || []).filter(m => !SEEN.has(m.id) && !(ME && m.staff_id === ME.id));
   (data || []).forEach(m => appendMessage(m));
   if ((data||[]).length && stick) scrollDown();
+  if (incoming.length){
+    playDing();
+    if (document.hidden) notify(incoming[incoming.length-1], CUR.name);  // وقتی اپ پنهان است
+  }
 
   // شمارش خوانده‌نشدهٔ کانال‌های دیگر
   pollUnread();
@@ -221,17 +308,22 @@ async function poll(){
 let UNREAD_TS = null;
 async function pollUnread(){
   if (UNREAD_TS === null){ UNREAD_TS = new Date().toISOString(); return; }
-  const { data } = await db.from("messages").select("channel_id, staff_id, created_at")
-    .gt("created_at", UNREAD_TS);
-  let changed = false;
+  const { data } = await db.from("messages").select("*").gt("created_at", UNREAD_TS);
+  let changed = false, lastOther = null;
   (data || []).forEach(m => {
     if (m.created_at > UNREAD_TS) UNREAD_TS = m.created_at;
     if (CUR && m.channel_id === CUR.id) return;     // کانال باز
     if (ME && m.staff_id === ME.id) return;         // پیام خودم
     UNREAD[m.channel_id] = (UNREAD[m.channel_id] || 0) + 1;
+    lastOther = m;
     changed = true;
   });
-  if (changed) renderChannels();
+  if (changed){
+    renderChannels();
+    playDing();                                     // پیام کانال دیگر هم صدا بدهد
+    const ch = CHANNELS.find(c => lastOther && c.id === lastOther.channel_id);
+    notify(lastOther, ch ? ch.name : "");           // نوتیفیکیشن با نام کانال
+  }
 }
 
 /* ============================================================
@@ -247,6 +339,7 @@ async function send(payload){
 
 $("composer").addEventListener("submit", e => {
   e.preventDefault();
+  unlockAudio();
   const text = $("msgInput").value.trim();
   if (!text) return;
   $("msgInput").value = "";

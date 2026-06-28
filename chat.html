@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>چت تیم — کافه باراما</title>
+<link rel="manifest" href="chat.webmanifest">
+<meta name="theme-color" content="#2e7d6b">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="کافه باراما">
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
 <style>
   :root{
@@ -119,6 +127,7 @@
 
     <div class="err" id="loginErr"></div>
     <button class="btn" id="loginBtn">ورود</button>
+    <button class="btn gray" id="installBtn" style="display:none;margin-top:10px">⬇️ نصب اپ روی گوشی</button>
     <button class="linkbtn" id="toggleAdd">نیروی جدید؟ اینجا اضافه کن +</button>
 
     <div id="addBox" hidden>
@@ -141,6 +150,7 @@
       <div class="who" id="hWho"></div>
     </div>
     <div class="spacer"></div>
+    <button id="soundBtn" title="صدای پیام">🔔</button>
     <button id="logoutBtn">خروج</button>
   </header>
 
@@ -161,6 +171,26 @@
 <div id="lightbox"><img id="lightboxImg" src="" alt=""></div>
 <div class="toast" id="toast"></div>
 
+<script>
+  // ---- PWA: ثبت سرویس‌ورکر ----
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(console.error));
+  }
+  // ---- دکمهٔ نصب (اندروید/کروم) ----
+  let deferredPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault(); deferredPrompt = e;
+    const b = document.getElementById("installBtn"); if (b) b.style.display = "block";
+  });
+  document.getElementById("installBtn").addEventListener("click", async () => {
+    if (!deferredPrompt) { alert("از منوی مرورگر گزینهٔ «افزودن به صفحهٔ اصلی / Install» را بزنید."); return; }
+    deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null;
+    document.getElementById("installBtn").style.display = "none";
+  });
+  window.addEventListener("appinstalled", () => {
+    const b = document.getElementById("installBtn"); if (b) b.style.display = "none";
+  });
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="chat.js"></script>
