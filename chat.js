@@ -58,12 +58,8 @@ function unlockAudio(){
   } catch(e){}
 }
 
-// صدای «دینگ» دو‌نتی بدون فایل (Web Audio)
+// صدای «دینگ» دو‌نتی بدون فایل (Web Audio) — فقط در صورت نبودِ گفتار
 function playDing(){
-  if (!soundOn) return;
-  const now = Date.now();
-  if (now - lastSound < 1200) return;     // جلوگیری از تکرار سریع
-  lastSound = now;
   try {
     unlockAudio();
     if (!audioCtx) return;
@@ -78,6 +74,38 @@ function playDing(){
       o.start(t0 + dt); o.stop(t0 + dt + 0.25);
     });
   } catch(e){}
+}
+
+// گفتنِ «کافه باراما» با صدای دستگاه (TTS) — اگر نشد، دینگ پخش می‌شود
+function speakName(){
+  try {
+    if (!("speechSynthesis" in window)){ playDing(); return; }
+    const u = new SpeechSynthesisUtterance("کافه باراما");
+    u.lang = "fa-IR"; u.rate = 1; u.pitch = 1; u.volume = 1;
+    const v = (window.speechSynthesis.getVoices() || [])
+      .find(x => /^fa/i.test(x.lang) || /persian|farsi|فارسی/i.test(x.name));
+    if (v) u.voice = v;
+    window.speechSynthesis.cancel();      // جلوگیری از صف شدن
+    window.speechSynthesis.speak(u);
+  } catch(e){ playDing(); }
+}
+
+// آماده‌سازی گفتار با یک تعامل کاربر (لازم برای بعضی مرورگرها)
+function warmupSpeech(){
+  try {
+    if (!("speechSynthesis" in window)) return;
+    const u = new SpeechSynthesisUtterance(" "); u.volume = 0;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+
+// هشدار صوتی پیام جدید (با رعایت روشن/خاموش و فاصلهٔ زمانی)
+function alertSound(){
+  if (!soundOn) return;
+  const now = Date.now();
+  if (now - lastSound < 1500) return;     // جلوگیری از تکرار سریع
+  lastSound = now;
+  speakName();
 }
 
 function msgPreview(m){
@@ -124,7 +152,7 @@ async function loadStaff(){
 }
 
 $("loginBtn").onclick = () => {
-  unlockAudio();                 // قفل‌گشایی صدا با تعامل کاربر
+  unlockAudio(); warmupSpeech(); // قفل‌گشایی صدا/گفتار با تعامل کاربر
   askNotifyPermission();         // درخواست اجازهٔ نوتیفیکیشن
   const id = +$("loginName").value;
   const pin = $("loginPin").value.trim();
@@ -142,8 +170,8 @@ $("soundBtn").onclick = () => {
   soundOn = !soundOn;
   localStorage.setItem("barama_chat_sound", soundOn ? "on" : "off");
   refreshSoundBtn();
-  if (soundOn){ unlockAudio(); playDing(); toast("صدا روشن شد"); }
-  else toast("صدا خاموش شد");
+  if (soundOn){ unlockAudio(); warmupSpeech(); speakName(); toast("صدا روشن شد"); }
+  else { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch(e){} toast("صدا خاموش شد"); }
 };
 refreshSoundBtn();
 $("loginPin").addEventListener("keydown", e => { if (e.key === "Enter") $("loginBtn").click(); });
@@ -297,7 +325,7 @@ async function poll(){
   (data || []).forEach(m => appendMessage(m));
   if ((data||[]).length && stick) scrollDown();
   if (incoming.length){
-    playDing();
+    alertSound();
     if (document.hidden) notify(incoming[incoming.length-1], CUR.name);  // وقتی اپ پنهان است
   }
 
@@ -320,7 +348,7 @@ async function pollUnread(){
   });
   if (changed){
     renderChannels();
-    playDing();                                     // پیام کانال دیگر هم صدا بدهد
+    alertSound();                                   // پیام کانال دیگر هم صدا بدهد
     const ch = CHANNELS.find(c => lastOther && c.id === lastOther.channel_id);
     notify(lastOther, ch ? ch.name : "");           // نوتیفیکیشن با نام کانال
   }
@@ -339,7 +367,7 @@ async function send(payload){
 
 $("composer").addEventListener("submit", e => {
   e.preventDefault();
-  unlockAudio();
+  unlockAudio(); warmupSpeech();
   const text = $("msgInput").value.trim();
   if (!text) return;
   $("msgInput").value = "";
