@@ -1,13 +1,12 @@
 {
-  "name": "چت تیم باراما",
-  "short_name": "چت باراما",
-  "description": "چت داخلی نیروهای کافه باراما",
+  "name": "کافه باراما",
+  "short_name": "باراما",
+  "description": "حسابداری، سفارش‌گیری، حضور و غیاب و چت کافه باراما",
   "lang": "fa",
   "dir": "rtl",
-  "start_url": "chat.html",
+  "start_url": "index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#1f5a4d",
   "theme_color": "#2e7d6b",
   "icons": [

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حسابداری — کافه باراما</title>
+<link rel="manifest" href="app.webmanifest">
+<meta name="theme-color" content="#2e7d6b">
+<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
+<style>
+  :root{--bg:#f6f7fb;--card:#fff;--ink:#1f2430;--muted:#7a8194;--line:#e7e9f0;--brand:#2e7d6b;
+    --brand-soft:#e6f4f0;--accent:#c98a2b;--danger:#d8584f;--radius:16px;--shadow:0 6px 24px rgba(31,36,48,.06)}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Vazirmatn,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+  button,input,select,textarea{font-family:inherit}
+  header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 18px}
+  .topbar{display:flex;align-items:center;gap:12px;height:62px;flex-wrap:wrap}
+  .logo{font-weight:800;font-size:19px;color:var(--brand);text-decoration:none}
+  nav{display:flex;gap:6px;margin-inline-start:auto;flex-wrap:wrap}
+  nav button{border:0;background:transparent;color:var(--muted);font-size:14px;padding:9px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+  nav button.active{background:var(--brand-soft);color:var(--brand)}
+  .back{color:var(--muted);text-decoration:none;font-size:13px;font-weight:600}
+  main{padding:24px 0 60px}
+  .tab{display:none}.tab.active{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+  h2{margin:0 0 4px;font-size:18px}.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+  input,select,textarea{width:100%;font-size:14px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:#fbfbfd;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--brand);background:#fff}
+  .grid{display:grid;gap:14px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .btn{display:inline-flex;align-items:center;gap:7px;border:0;cursor:pointer;font-weight:700;font-size:14px;padding:11px 18px;border-radius:12px;background:var(--brand);color:#fff}
+  .btn.gray{background:#eef0f5;color:var(--ink)}.btn.sm{padding:7px 12px;font-size:13px}
+  .btn.danger{background:transparent;color:var(--danger);padding:6px 10px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.spacer{flex:1}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:right;padding:11px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12.5px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:620px){.stats{grid-template-columns:1fr}}
+  .stat{border-radius:14px;padding:18px}
+  .stat b{display:block;font-size:26px;margin-top:6px}
+  .stat.in{background:#e6f4f0;color:var(--brand)}
+  .stat.out{background:#fdecea;color:#a5342c}
+  .stat.profit{background:#fff5e8;color:#a5632a}
+  .muted{color:var(--muted)}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
+  #toast.show{opacity:1}
+  #gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--muted);z-index:50}
+</style>
+</head>
+<body>
+<div id="gate">در حال بررسی دسترسی…</div>
+
+<header>
+  <div class="wrap topbar">
+    <a class="logo" href="index.html">☕ باراما</a>
+    <nav>
+      <button data-tab="summary" class="active">خلاصه و سود</button>
+      <button data-tab="expenses">هزینه‌ها</button>
+    </nav>
+    <a class="back" href="index.html">⟵ داشبورد</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- خلاصه -->
+  <section id="tab-summary" class="tab active">
+    <div class="card">
+      <h2>خلاصهٔ مالی</h2>
+      <div class="sub">یک بازهٔ زمانی انتخاب کن تا درآمد، هزینه و سود را ببینی.</div>
+      <div class="grid g4">
+        <div><label>از تاریخ</label><input type="date" id="s_from"></div>
+        <div><label>تا تاریخ</label><input type="date" id="s_to"></div>
+        <div style="align-self:end"><button class="btn" id="s_apply">محاسبه</button></div>
+        <div style="align-self:end"><button class="btn gray" id="s_month">این ماه</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="stats">
+        <div class="stat in">درآمد (فروش)<b id="s_income">۰ ت</b></div>
+        <div class="stat out">هزینه‌ها<b id="s_expense">۰ ت</b></div>
+        <div class="stat profit">سود<b id="s_profit">۰ ت</b></div>
+      </div>
+      <div class="muted" id="s_meta" style="margin-top:14px;font-size:13px"></div>
+    </div>
+    <div class="card">
+      <h2 style="font-size:16px">هزینه‌ها بر اساس دسته</h2>
+      <div id="s_bycat" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- هزینه‌ها -->
+  <section id="tab-expenses" class="tab">
+    <div class="card">
+      <h2>ثبت هزینه</h2>
+      <div class="sub">هزینه‌های کافه را اینجا ثبت کن.</div>
+      <div class="grid g4">
+        <div><label>تاریخ</label><input type="text" id="e_date" data-jdp data-jdp-only-date readonly autocomplete="off" placeholder="انتخاب" style="background:#fff;cursor:pointer"></div>
+        <div><label>دسته</label><input id="e_category" list="catList" placeholder="مواد اولیه، حقوق…"><datalist id="catList"></datalist></div>
+        <div><label>عنوان</label><input id="e_title" placeholder="شرح هزینه"></div>
+        <div><label>مبلغ (تومان)</label><input type="number" id="e_amount" min="0" inputmode="numeric"></div>
+      </div>
+      <div class="grid" style="margin-top:12px"><div><label>یادداشت</label><input id="e_note" placeholder="اختیاری"></div></div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="e_save">💾 ثبت هزینه</button></div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:12px">
+        <div><label>از</label><input type="date" id="f_from"></div>
+        <div><label>تا</label><input type="date" id="f_to"></div>
+        <div style="align-self:end"><button class="btn gray sm" id="f_apply">فیلتر</button></div>
+        <div class="spacer"></div>
+        <div class="muted" id="exp_total" style="align-self:end;font-weight:700"></div>
+      </div>
+      <div style="overflow:auto">
+        <table id="expTable"><thead><tr><th>تاریخ</th><th>دسته</th><th>عنوان</th><th>مبلغ</th><th>یادداشت</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="muted" id="expEmpty" style="display:none;text-align:center;padding:30px 0">هزینه‌ای ثبت نشده.</div>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jalaali-js@1.2.6/dist/jalaali.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="accounting.js"></script>
+</body>
+</html>

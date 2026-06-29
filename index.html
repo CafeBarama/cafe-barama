@@ -3,286 +3,146 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>کافه باراما — مدیریت مشتریان و سفارش‌ها</title>
+<title>کافه باراما — ورود</title>
+<link rel="manifest" href="app.webmanifest">
+<meta name="theme-color" content="#2e7d6b">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="کافه باراما">
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
 <style>
   :root{
-    --bg:#f6f7fb; --card:#ffffff; --ink:#1f2430; --muted:#7a8194;
-    --line:#e7e9f0; --brand:#2e7d6b; --brand-soft:#e6f4f0;
-    --accent:#c98a2b; --danger:#d8584f; --radius:16px;
+    --bg:#f6f7fb; --card:#fff; --ink:#1f2430; --muted:#7a8194; --line:#e7e9f0;
+    --brand:#2e7d6b; --brand-soft:#e6f4f0; --accent:#c98a2b; --danger:#d8584f; --radius:16px;
     --shadow:0 6px 24px rgba(31,36,48,.06);
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:Vazirmatn,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
-  a{color:inherit}
-  header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
-  .wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+  button,input,select{font-family:inherit}
+  .banner{background:#fdecea;color:#a5342c;text-align:center;padding:10px;font-size:13px;display:none}
+
+  /* ورود */
+  .overlay{position:fixed;inset:0;background:linear-gradient(160deg,#2e7d6b,#1f5a4d);
+    display:flex;align-items:center;justify-content:center;padding:18px;z-index:40}
+  .login-card{background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:390px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .login-card h1{margin:0 0 2px;font-size:23px;color:var(--brand);text-align:center}
+  .login-card .sub{color:var(--muted);font-size:13px;text-align:center;margin-bottom:20px}
+  label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
+  input,select{width:100%;font-size:15px;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#fbfbfd;outline:none}
+  input:focus,select:focus{border-color:var(--brand);background:#fff}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;cursor:pointer;font-weight:700;
+    font-size:15px;padding:13px 18px;border-radius:12px;background:var(--brand);color:#fff;width:100%}
+  .btn:active{filter:brightness(.94)}
+  .btn.gray{background:#eef0f5;color:var(--ink)}
+  .btn.sm{width:auto;padding:8px 14px;font-size:13px}
+  .btn.danger{background:transparent;color:var(--danger);width:auto;padding:6px 10px}
+  .linkbtn{background:none;border:0;color:var(--brand);font-weight:600;font-size:13.5px;cursor:pointer;margin-top:14px;width:100%;padding:6px}
+  .err{color:var(--danger);font-size:13px;text-align:center;margin-top:10px;min-height:18px}
+
+  /* داشبورد */
+  header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 18px}
   .topbar{display:flex;align-items:center;gap:14px;height:64px}
   .logo{font-weight:800;font-size:20px;color:var(--brand)}
-  .logo small{font-weight:500;color:var(--muted);font-size:12px;margin-inline-start:6px}
-  nav{display:flex;gap:6px;margin-inline-start:auto;flex-wrap:wrap}
-  nav button{border:0;background:transparent;color:var(--muted);font-family:inherit;font-size:14px;
-    padding:9px 14px;border-radius:12px;cursor:pointer;font-weight:600}
-  nav button.active{background:var(--brand-soft);color:var(--brand)}
-  main{padding:24px 0 60px}
-  .tab{display:none}.tab.active{display:block}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
-  h2{margin:0 0 4px;font-size:18px}
-  .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
-  label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink)}
-  input,select,textarea{width:100%;font-family:inherit;font-size:14px;padding:11px 13px;
-    border:1px solid var(--line);border-radius:12px;background:#fbfbfd;color:var(--ink);outline:none}
-  input:focus,select:focus,textarea:focus{border-color:var(--brand);background:#fff}
-  textarea{resize:vertical;min-height:64px}
-  .grid{display:grid;gap:14px}
-  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
-  @media(max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}}
-  .btn{display:inline-flex;align-items:center;gap:7px;border:0;cursor:pointer;font-family:inherit;
-    font-weight:700;font-size:14px;padding:11px 18px;border-radius:12px;background:var(--brand);color:#fff}
-  .btn:hover{filter:brightness(.96)}
-  .btn.ghost{background:var(--brand-soft);color:var(--brand)}
-  .btn.gray{background:#eef0f5;color:var(--ink)}
-  .btn.wa{background:#25d366}
-  .btn.sm{padding:7px 12px;font-size:13px;border-radius:10px}
-  .btn.danger{background:transparent;color:var(--danger);padding:6px 10px}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .spacer{flex:1}
+  .chip{margin-inline-start:auto;color:var(--muted);font-size:13px}
+  main{padding:28px 0 60px}
+  .hello{font-size:22px;font-weight:800;margin:0 0 4px}
+  .hello small{display:block;color:var(--muted);font-size:13px;font-weight:500;margin-top:4px}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:22px}
+  @media(max-width:620px){.cards{grid-template-columns:1fr}}
+  .mod{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;cursor:pointer;text-decoration:none;color:inherit;transition:.15s}
+  .mod:hover{transform:translateY(-2px);border-color:var(--brand-soft)}
+  .mod .ic{font-size:34px;width:64px;height:64px;border-radius:16px;background:var(--brand-soft);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .mod b{font-size:17px}
+  .mod .d{color:var(--muted);font-size:13px;margin-top:3px}
+
+  dialog{border:0;border-radius:18px;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.25);max-width:680px;width:94%}
+  dialog::backdrop{background:rgba(20,24,32,.45)}
+  .modal-body{padding:22px}
   table{width:100%;border-collapse:collapse;font-size:13.5px}
-  th,td{text-align:right;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th,td{text-align:right;padding:10px 8px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;font-size:12.5px}
-  tr:hover td{background:#fafbfd}
-  .pill{display:inline-block;background:var(--brand-soft);color:var(--brand);font-size:11.5px;
-    padding:3px 9px;border-radius:20px;font-weight:600}
-  .muted{color:var(--muted)}
-  .right{ text-align:left}
-  .item-line{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line)}
-  .item-line:last-child{border:0}
-  .qty{width:64px}
-  .totbox{background:var(--brand-soft);border-radius:12px;padding:14px 16px;display:flex;
-    gap:18px;flex-wrap:wrap;font-weight:700;color:var(--brand)}
-  .totbox span small{display:block;font-weight:500;color:var(--muted);font-size:11px;margin-bottom:2px}
-  .empty{text-align:center;color:var(--muted);padding:40px 0}
-  .badge-cal{background:#fff5e8;color:var(--accent);font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .pill{display:inline-block;background:var(--brand-soft);color:var(--brand);font-size:11.5px;padding:3px 9px;border-radius:20px;font-weight:600}
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
     padding:12px 20px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
   #toast.show{opacity:1}
-  .banner{background:#fdecea;color:#a5342c;border:1px solid #f5c6c2;padding:12px 16px;border-radius:12px;
-    margin-bottom:18px;font-size:13.5px;display:none}
-  .menu-cat{font-weight:800;color:var(--brand);margin:18px 0 8px;font-size:15px}
-  .menu-item{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
-  .menu-item b{font-weight:600}
-  dialog{border:0;border-radius:18px;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.25);max-width:620px;width:92%}
-  dialog::backdrop{background:rgba(20,24,32,.45)}
-  .modal-body{padding:22px}
 </style>
 </head>
 <body>
-<header>
-  <div class="wrap topbar">
-    <div class="logo">☕ کافه باراما <small>مدیریت مشتری و سفارش</small></div>
-    <nav id="nav">
-      <button data-tab="order" class="active">ثبت سفارش</button>
-      <button data-tab="orders">سفارش‌ها</button>
-      <button data-tab="products">محصولات</button>
-      <button data-tab="menu">منو و ارسال</button>
-      <button data-tab="inventory">اقلام <span id="invNavBadge"></span></button>
-      <a href="chat.html" style="text-decoration:none;background:var(--brand);color:#fff;font-size:14px;padding:9px 14px;border-radius:12px;font-weight:600;display:inline-flex;align-items:center">💬 چت تیم</a>
-    </nav>
-  </div>
-</header>
+<div id="configBanner" class="banner">⚠️ کلید دیتابیس در config.js تنظیم نشده است.</div>
 
-<main class="wrap">
-  <div id="configBanner" class="banner">
-    ⚠️ کلید دیتابیس تنظیم نشده است. فایل <b>config.js</b> را باز کنید و کلید Publishable را وارد کنید.
-  </div>
-
-  <!-- ============ ثبت سفارش ============ -->
-  <section id="tab-order" class="tab active">
-    <div class="card">
-      <h2>ثبت سفارش جدید</h2>
-      <div class="sub">اطلاعات مشتری و محصولات سفارش را وارد کنید.</div>
-      <div class="grid g3">
-        <div><label>تاریخ</label><input type="text" id="o_date" data-jdp data-jdp-only-date autocomplete="off" readonly placeholder="انتخاب تاریخ" style="background:#fff;cursor:pointer"></div>
-        <div><label>نام مشتری *</label><input id="o_name" list="customersList" autocomplete="off" placeholder="نام و نام خانوادگی"><datalist id="customersList"></datalist></div>
-        <div><label>تلفن</label><input id="o_phone" placeholder="09xxxxxxxxx" inputmode="numeric"></div>
+<!-- ورود -->
+<div id="login" class="overlay">
+  <div class="login-card">
+    <h1>☕ کافه باراما</h1>
+    <div class="sub">برای ورود نام کاربری و رمز خود را وارد کنید</div>
+    <label>نام کاربری</label>
+    <input id="username" autocomplete="username" placeholder="username">
+    <label>رمز عبور</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="••••••">
+    <div class="err" id="loginErr"></div>
+    <button class="btn" id="loginBtn">ورود</button>
+    <button class="linkbtn" id="toggleSignup">ساخت اولین حساب مدیر (فقط بار اول)</button>
+    <div id="signupBox" hidden>
+      <label>نام کامل</label><input id="suName" placeholder="نام و نام خانوادگی">
+      <div class="grid2">
+        <div><label>نام کاربری</label><input id="suUser" placeholder="username"></div>
+        <div><label>رمز (حداقل ۶ نویسه)</label><input id="suPass" type="password" placeholder="••••••"></div>
       </div>
-      <div class="grid" style="margin-top:14px">
-        <div><label>آدرس</label><textarea id="o_address" placeholder="آدرس مشتری (اختیاری)"></textarea></div>
-      </div>
+      <button class="btn gray" id="signupBtn" style="margin-top:12px">ساخت حساب</button>
+      <div class="err" id="suErr"></div>
     </div>
+  </div>
+</div>
 
-    <div class="card">
-      <h2>محصولات سفارش</h2>
-      <div class="sub">محصول را انتخاب و دکمه «افزودن» را بزنید.</div>
-      <div class="row">
-        <input id="o_product" list="productsList" autocomplete="off" placeholder="نام محصول را تایپ کنید…" style="flex:1">
-        <datalist id="productsList"></datalist>
-        <input type="number" id="o_qty" class="qty" value="1" min="1">
-        <button class="btn ghost" id="addItemBtn">+ افزودن</button>
-      </div>
-      <div id="itemsList" style="margin-top:14px"></div>
-      <div class="totbox" id="orderTotals" style="margin-top:14px;align-items:baseline;gap:10px">
-        <span style="font-size:15px;font-weight:700">مبلغ قابل پرداخت:</span>
-        <b id="t_price" style="font-size:24px;margin-inline-start:auto">۰ تومان</b>
-      </div>
-      <div class="grid g3" style="margin-top:14px">
-        <div><label>یادداشت</label><input id="o_notes" placeholder="توضیح اضافه (اختیاری)"></div>
-        <div><label>امتیاز اسنپ</label>
-          <select id="o_snapp_rating">
-            <option value="">— بدون امتیاز —</option>
-            <option value="5">★★★★★ (۵)</option>
-            <option value="4">★★★★ (۴)</option>
-            <option value="3">★★★ (۳)</option>
-            <option value="2">★★ (۲)</option>
-            <option value="1">★ (۱)</option>
+<!-- داشبورد -->
+<div id="app" hidden>
+  <header>
+    <div class="wrap topbar">
+      <div class="logo">☕ کافه باراما</div>
+      <span class="chip" id="userChip"></span>
+      <button class="btn sm gray" id="logoutBtn">خروج</button>
+    </div>
+  </header>
+  <main class="wrap">
+    <h2 class="hello" id="hello"></h2>
+    <div class="cards" id="cards"></div>
+  </main>
+</div>
+
+<!-- مدیریت کاربران (فقط مدیر) -->
+<dialog id="usersDlg">
+  <div class="modal-body">
+    <div class="row"><h2 style="margin:0;flex:1">مدیریت کاربران</h2>
+      <button class="btn danger" id="usersClose">بستن</button></div>
+    <div style="margin:14px 0;padding:14px;border:1px dashed var(--line);border-radius:12px">
+      <b style="font-size:14px">افزودن کاربر جدید</b>
+      <div class="grid2" style="margin-top:10px">
+        <div><label>نام کامل</label><input id="nuName" placeholder="نام"></div>
+        <div><label>نام کاربری</label><input id="nuUser" placeholder="username"></div>
+        <div><label>رمز (حداقل ۶)</label><input id="nuPass" type="password" placeholder="••••••"></div>
+        <div><label>نقش</label>
+          <select id="nuRole">
+            <option value="staff">نیرو</option>
+            <option value="accountant">حسابدار</option>
+            <option value="admin">مدیر</option>
           </select>
         </div>
-        <div><label>توضیحات امتیاز اسنپ</label><input id="o_snapp_comment" placeholder="نظر/توضیح ثبت‌شده در اسنپ"></div>
       </div>
-      <div class="row" style="margin-top:16px">
-        <button class="btn" id="saveOrderBtn">💾 ثبت سفارش</button>
-        <button class="btn wa" id="waOrderBtn">ارسال به واتساپ مشتری</button>
-        <button class="btn gray" id="clearOrderBtn">پاک کردن فرم</button>
-      </div>
+      <button class="btn sm" id="nuAdd" style="margin-top:12px">+ ساخت کاربر</button>
+      <div class="err" id="nuErr" style="text-align:right"></div>
     </div>
-  </section>
-
-  <!-- ============ سفارش‌ها ============ -->
-  <section id="tab-orders" class="tab">
-    <div class="card">
-      <h2>سفارش‌ها و مشتری‌ها</h2>
-      <div class="sub">برای بررسی داده‌ها فیلتر کنید.</div>
-      <div class="grid g4">
-        <div><label>جستجو (نام/تلفن)</label><input id="f_text" placeholder="نام یا شماره"></div>
-        <div><label>محصول</label><input id="f_product" placeholder="نام محصول"></div>
-        <div><label>از تاریخ</label><input type="date" id="f_from"></div>
-        <div><label>تا تاریخ</label><input type="date" id="f_to"></div>
-      </div>
-      <div class="row" style="margin-top:14px">
-        <button class="btn" id="applyFilter">اعمال فیلتر</button>
-        <button class="btn gray" id="resetFilter">حذف فیلتر</button>
-        <div class="spacer"></div>
-        <span class="muted" id="ordersCount"></span>
-        <button class="btn ghost sm" id="exportCsv">⬇ خروجی CSV</button>
-      </div>
-    </div>
-    <div class="card">
-      <div id="ordersList"></div>
-      <div class="empty" id="ordersEmpty" style="display:none">سفارشی یافت نشد.</div>
-    </div>
-  </section>
-
-  <!-- ============ محصولات ============ -->
-  <section id="tab-products" class="tab">
-    <div class="card">
-      <div class="row">
-        <div><h2>محصولات کافه</h2><div class="sub" style="margin:0">افزودن، ویرایش و ثبت ارزش غذایی.</div></div>
-        <div class="spacer"></div>
-        <button class="btn" id="newProductBtn">+ محصول جدید</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="row" style="margin-bottom:12px">
-        <input id="p_search" placeholder="جستجوی محصول…" style="max-width:280px">
-      </div>
-      <div style="overflow:auto">
-        <table id="productsTable">
-          <thead><tr>
-            <th>نام</th><th>دسته</th><th>قیمت</th><th>کالری</th>
-            <th>پروتئین</th><th>کربو</th><th>چربی</th><th>فیبر</th><th></th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ منو و ارسال ============ -->
-  <section id="tab-menu" class="tab">
-    <div class="card">
-      <div class="row">
-        <div><h2>منو + ارزش غذایی</h2><div class="sub" style="margin:0">لیست کامل محصولات برای ارسال به مشتری.</div></div>
-        <div class="spacer"></div>
-        <input id="wa_to" placeholder="شماره مشتری (اختیاری)" style="max-width:200px" inputmode="numeric">
-        <button class="btn wa" id="waMenuBtn">ارسال منو در واتساپ</button>
-      </div>
-    </div>
-    <div class="card" id="menuView"></div>
-  </section>
-
-  <!-- ============ اقلام / موجودی ============ -->
-  <section id="tab-inventory" class="tab">
-    <div class="card">
-      <div class="row">
-        <div><h2>اقلام و موجودی (آخر شیفت)</h2><div class="sub" style="margin:0">وضعیت هر قلم را مشخص کن.</div></div>
-        <div class="spacer"></div>
-        <input id="invNewName" placeholder="نام قلم جدید…" style="max-width:200px">
-        <button class="btn ghost" id="invAddBtn">+ افزودن</button>
-      </div>
-      <div id="invBanner" class="banner" style="display:none;background:#fff5e8;color:#a5632a;border-color:#f3d9a8;margin-top:14px"></div>
-      <div class="row" style="margin-top:12px">
-        <button class="btn wa" id="invWaBtn">ارسال لیست تهیه در واتساپ</button>
-        <button class="btn gray sm" id="invResetBtn">همه «موجود»</button>
-        <div class="spacer"></div>
-        <button class="btn ghost sm" id="invNotifyBtn">🔔 فعال‌کردن هشدار</button>
-      </div>
-    </div>
-    <div class="card">
-      <div id="inventoryList"></div>
-      <div class="empty" id="invEmpty" style="display:none">هنوز قلمی اضافه نشده. از بالا «افزودن» کن.</div>
-    </div>
-  </section>
-</main>
-
-<!-- ویرایش/افزودن محصول -->
-<dialog id="productDialog">
-  <div class="modal-body">
-    <h2 id="pdTitle">محصول جدید</h2>
-    <input type="hidden" id="pd_id">
-    <div class="grid g2" style="margin-top:8px">
-      <div><label>نام فارسی *</label><input id="pd_name"></div>
-      <div><label>نام انگلیسی</label><input id="pd_name_en"></div>
-      <div><label>دسته‌بندی</label><input id="pd_category" list="catList"></div>
-      <div><label>قیمت (تومان)</label><input type="number" id="pd_price" min="0"></div>
-      <div><label>کالری</label><input type="number" id="pd_calories" min="0"></div>
-      <div><label>پروتئین (گرم)</label><input type="number" id="pd_protein" min="0"></div>
-      <div><label>کربوهیدرات (گرم)</label><input type="number" id="pd_carbs" min="0"></div>
-      <div><label>چربی (گرم)</label><input type="number" id="pd_fat" min="0"></div>
-      <div><label>فیبر (گرم)</label><input type="number" id="pd_fiber" min="0"></div>
-    </div>
-    <div style="margin-top:12px"><label>توضیح</label><input id="pd_description"></div>
-    <datalist id="catList"></datalist>
-    <div class="row" style="margin-top:18px">
-      <button class="btn" id="pdSave">ذخیره</button>
-      <button class="btn gray" id="pdCancel">انصراف</button>
-    </div>
-  </div>
-</dialog>
-
-<!-- ثبت/ویرایش امتیاز اسنپ (فقط امتیاز و توضیحات) -->
-<dialog id="snappDialog">
-  <div class="modal-body">
-    <h2>ثبت امتیاز اسنپ</h2>
-    <div class="sub" id="sd_customer"></div>
-    <input type="hidden" id="sd_id">
-    <div><label>امتیاز اسنپ</label>
-      <select id="sd_rating">
-        <option value="">— بدون امتیاز —</option>
-        <option value="5">★★★★★ (۵)</option>
-        <option value="4">★★★★ (۴)</option>
-        <option value="3">★★★ (۳)</option>
-        <option value="2">★★ (۲)</option>
-        <option value="1">★ (۱)</option>
-      </select>
-    </div>
-    <div style="margin-top:12px"><label>توضیحات امتیاز اسنپ</label>
-      <textarea id="sd_comment" placeholder="نظر/توضیح ثبت‌شده در اسنپ"></textarea>
-    </div>
-    <div class="row" style="margin-top:18px">
-      <button class="btn" id="sdSave">ذخیره</button>
-      <button class="btn gray" id="sdCancel">انصراف</button>
+    <div style="overflow:auto">
+      <table id="usersTable">
+        <thead><tr><th>نام</th><th>نام کاربری</th><th>نقش</th><th>فعال</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 </dialog>
@@ -290,9 +150,12 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/jalaali-js@1.2.6/dist/jalaali.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
 <script src="config.js"></script>
-<script src="app.js"></script>
+<script src="auth.js"></script>
+<script src="index.js"></script>
+<script>
+  if ("serviceWorker" in navigator)
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(console.error));
+</script>
 </body>
 </html>

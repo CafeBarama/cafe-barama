@@ -2,11 +2,8 @@
    کافه باراما — چت تیم
    ============================================================ */
 
-// ---------- اتصال به Supabase ----------
-let db = null;
-const configured = SUPABASE_KEY && !SUPABASE_KEY.startsWith("PASTE_");
-if (configured) db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-else document.getElementById("configBanner").style.display = "block";
+// ---------- اتصال به Supabase (کلاینت مشترک از auth.js) ----------
+const db = (typeof sb !== "undefined") ? sb : null;
 
 // ---------- ابزارها ----------
 const $ = (id) => document.getElementById(id);
@@ -33,16 +30,13 @@ function dayLabel(iso){
 function dayKey(iso){ return new Date(iso).toDateString(); }
 
 // ---------- وضعیت ----------
-let ME = null;            // {id, name}
-let STAFF = [];
+let ME = null;            // {id (uuid), name}
 let CHANNELS = [];
 let CUR = null;           // کانال جاری
 let SEEN = new Set();     // id پیام‌های نمایش‌داده‌شده (جلوگیری از تکرار)
 let LAST_TS = null;       // زمان آخرین پیام برای واکشی افزایشی
 let POLL_T = null;
 const UNREAD = {};        // {channel_id: count}
-
-const ME_KEY = "barama_chat_me";
 
 /* ============================================================
    صدا و نوتیفیکیشن
@@ -140,31 +134,8 @@ function askNotifyPermission(){
 }
 
 /* ============================================================
-   ورود
+   صدا: دکمهٔ روشن/خاموش
    ============================================================ */
-async function loadStaff(){
-  if (!db) return;
-  const { data, error } = await db.from("staff").select("*").eq("active", true).order("name");
-  if (error){ console.error(error); return; }
-  STAFF = data || [];
-  $("loginName").innerHTML = `<option value="">— انتخاب —</option>` +
-    STAFF.map(s => `<option value="${s.id}">${esc(s.name)}${s.role?` (${esc(s.role)})`:""}</option>`).join("");
-}
-
-$("loginBtn").onclick = () => {
-  unlockAudio(); warmupSpeech(); // قفل‌گشایی صدا/گفتار با تعامل کاربر
-  askNotifyPermission();         // درخواست اجازهٔ نوتیفیکیشن
-  const id = +$("loginName").value;
-  const pin = $("loginPin").value.trim();
-  const s = STAFF.find(x => x.id === id);
-  if (!s) return ($("loginErr").textContent = "نام خود را انتخاب کنید");
-  if ((s.pin || "") !== pin) return ($("loginErr").textContent = "رمز اشتباه است");
-  ME = { id: s.id, name: s.name };
-  localStorage.setItem(ME_KEY, JSON.stringify(ME));
-  startApp();
-};
-
-// دکمهٔ روشن/خاموش صدا
 function refreshSoundBtn(){ $("soundBtn").textContent = soundOn ? "🔔" : "🔕"; }
 $("soundBtn").onclick = () => {
   soundOn = !soundOn;
@@ -174,36 +145,11 @@ $("soundBtn").onclick = () => {
   else { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch(e){} toast("صدا خاموش شد"); }
 };
 refreshSoundBtn();
-$("loginPin").addEventListener("keydown", e => { if (e.key === "Enter") $("loginBtn").click(); });
-
-// افزودن نیرو
-$("toggleAdd").onclick = () => { $("addBox").hidden = !$("addBox").hidden; };
-$("saveStaffBtn").onclick = async () => {
-  if (!db) return toast("کلید دیتابیس تنظیم نشده");
-  const name = $("newName").value.trim();
-  const pin  = $("newPin").value.trim();
-  if (!name) return toast("نام را وارد کنید");
-  if (!pin)  return toast("یک رمز کوتاه بگذارید");
-  const { error } = await db.from("staff").insert({ name, pin, role: $("newRole").value.trim() || null });
-  if (error){ console.error(error); return toast("خطا — جدول staff ساخته شده؟"); }
-  toast("✓ نیرو اضافه شد");
-  $("newName").value = $("newPin").value = $("newRole").value = "";
-  $("addBox").hidden = true;
-  await loadStaff();
-  $("loginName").value = String([...STAFF].reverse().find(s=>s.name===name)?.id || "");
-};
-
-$("logoutBtn").onclick = () => {
-  localStorage.removeItem(ME_KEY);
-  if (POLL_T) clearInterval(POLL_T);
-  location.reload();
-};
 
 /* ============================================================
-   شروع برنامه (بعد از ورود)
+   شروع برنامه (بعد از تأیید دسترسی)
    ============================================================ */
 async function startApp(){
-  $("login").style.display = "none";
   $("app").hidden = false;
   $("hWho").textContent = ME.name;
   askNotifyPermission();
@@ -280,7 +226,7 @@ function appendMessage(m, prevDayKey){
     box.dataset.lastday = dayKey(m.created_at);
   }
 
-  const mine = ME && m.staff_id === ME.id;
+  const mine = ME && m.sender_uid === ME.id;
   const el = document.createElement("div");
   el.className = "msg " + (mine ? "mine" : "theirs");
 
@@ -321,7 +267,7 @@ async function poll(){
   if (error){ console.error(error); return; }
   const stick = nearBottom();
   // پیام‌های واقعاً جدیدِ دیگران (قبل از افزودن به SEEN)
-  const incoming = (data || []).filter(m => !SEEN.has(m.id) && !(ME && m.staff_id === ME.id));
+  const incoming = (data || []).filter(m => !SEEN.has(m.id) && !(ME && m.sender_uid === ME.id));
   (data || []).forEach(m => appendMessage(m));
   if ((data||[]).length && stick) scrollDown();
   if (incoming.length){
@@ -341,7 +287,7 @@ async function pollUnread(){
   (data || []).forEach(m => {
     if (m.created_at > UNREAD_TS) UNREAD_TS = m.created_at;
     if (CUR && m.channel_id === CUR.id) return;     // کانال باز
-    if (ME && m.staff_id === ME.id) return;         // پیام خودم
+    if (ME && m.sender_uid === ME.id) return;       // پیام خودم
     UNREAD[m.channel_id] = (UNREAD[m.channel_id] || 0) + 1;
     lastOther = m;
     changed = true;
@@ -358,7 +304,7 @@ async function pollUnread(){
    ارسال پیام
    ============================================================ */
 async function send(payload){
-  const rec = { channel_id: CUR.id, staff_id: ME.id, staff_name: ME.name, ...payload };
+  const rec = { channel_id: CUR.id, sender_uid: ME.id, staff_name: ME.name, ...payload };
   const { data, error } = await db.from("messages").insert(rec).select().single();
   if (error){ console.error(error); return toast("خطا در ارسال پیام"); }
   appendMessage(data);   // نمایش فوری (poll با SEEN تکرارش نمی‌کند)
@@ -462,7 +408,7 @@ async function uploadMedia(fileOrBlob, ext){
 // ---------- حذف پیام (فقط مال خودم) ----------
 window.delMsg = async (id) => {
   if (!confirm("این پیام حذف شود؟")) return;
-  const { error } = await db.from("messages").delete().eq("id", id).eq("staff_id", ME.id);
+  const { error } = await db.from("messages").delete().eq("id", id).eq("sender_uid", ME.id);
   if (error){ console.error(error); return toast("خطا در حذف"); }
   SEEN.delete(id);
   await loadMessages();
@@ -473,16 +419,13 @@ window.showImg = (url) => { $("lightboxImg").src = url; $("lightbox").style.disp
 $("lightbox").onclick = () => { $("lightbox").style.display = "none"; $("lightboxImg").src = ""; };
 
 /* ============================================================
-   شروع
+   شروع (با محافظ دسترسی: فقط مدیر و نیرو)
    ============================================================ */
 (async function init(){
   if (!db) return;
-  await loadStaff();
-  const saved = localStorage.getItem(ME_KEY);
-  if (saved){
-    try {
-      const me = JSON.parse(saved);
-      if (STAFF.some(s => s.id === me.id)){ ME = me; startApp(); return; }
-    } catch(e){}
-  }
+  const p = await guard(["admin", "staff"]);
+  if (!p) return;                       // guard ریدایرکت کرده
+  ME = { id: p.id, name: p.full_name || p.username };
+  $("gate").remove();
+  startApp();
 })();

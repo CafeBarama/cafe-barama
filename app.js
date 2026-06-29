@@ -2,13 +2,12 @@
    کافه باراما — منطق برنامه
    ============================================================ */
 
-// ---------- اتصال به Supabase ----------
-let db = null;
-const configured = SUPABASE_KEY && !SUPABASE_KEY.startsWith("PASTE_");
-if (configured) {
-  db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-} else {
-  document.getElementById("configBanner").style.display = "block";
+// ---------- اتصال به Supabase (کلاینت احرازشدهٔ مشترک از auth.js) ----------
+let db = (typeof sb !== "undefined" && sb) ? sb : null;
+if (!db) {
+  const configured = SUPABASE_KEY && !SUPABASE_KEY.startsWith("PASTE_");
+  if (configured) db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  else document.getElementById("configBanner").style.display = "block";
 }
 
 // ---------- ابزارهای کمکی ----------
