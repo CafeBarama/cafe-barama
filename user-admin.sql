@@ -7,7 +7,8 @@
 create or replace function public.cafe_delete_user(uid uuid)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  if public.cafe_role() <> 'admin' then
+  -- «is distinct from» تا nullِ نقش (کاربر ناشناس) هم رد شود
+  if public.cafe_role() is distinct from 'admin' then
     raise exception 'فقط مدیر می‌تواند کاربر حذف کند';
   end if;
   if uid = auth.uid() then
