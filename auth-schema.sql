@@ -142,3 +142,19 @@ create policy "attendance_update" on attendance for update
   using (staff_uid = auth.uid() or public.my_role() = 'admin');
 create policy "attendance_delete" on attendance for delete
   using (public.my_role() = 'admin');
+
+-- ============================================================
+--  جبران: کاربرانی که پیش از اجرای این اسکریپت ساخته شده‌اند
+--  (پروفایل برایشان بساز، قدیمی‌ترین را مدیر کن، و تأییدشان کن)
+-- ============================================================
+insert into public.profiles (id, username, full_name, role)
+select u.id, split_part(u.email,'@',1), split_part(u.email,'@',1), 'staff'
+from auth.users u
+where not exists (select 1 from public.profiles p where p.id = u.id);
+
+update public.profiles set role = 'admin'
+where id = (select id from auth.users order by created_at asc limit 1)
+  and not exists (select 1 from public.profiles where role = 'admin');
+
+-- تأیید کاربرانِ تأییدنشده (چون با ایمیل داخلی کار می‌کنیم)
+update auth.users set email_confirmed_at = now() where email_confirmed_at is null;
