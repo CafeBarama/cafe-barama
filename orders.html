@@ -92,6 +92,7 @@
       <button data-tab="products">محصولات</button>
       <button data-tab="menu">منو و ارسال</button>
       <button data-tab="inventory">اقلام <span id="invNavBadge"></span></button>
+      <button data-tab="expenses" id="expTabBtn" style="display:none">هزینه‌ها</button>
       <a href="index.html" style="text-decoration:none;color:var(--muted);font-size:13px;padding:9px 12px;font-weight:600;display:inline-flex;align-items:center">⟵ داشبورد</a>
     </nav>
   </div>
@@ -238,6 +239,31 @@
       <div class="empty" id="invEmpty" style="display:none">هنوز قلمی اضافه نشده. از بالا «افزودن» کن.</div>
     </div>
   </section>
+
+  <!-- ============ هزینه‌ها (مدیر/حسابدار) ============ -->
+  <section id="tab-expenses" class="tab">
+    <div class="card">
+      <h2>ثبت هزینه</h2>
+      <div class="sub">هزینه‌های کافه را ثبت کن؛ مبلغ و جزئیات در «حسابداری iPro» برای مدیر نمایش داده می‌شود.</div>
+      <div class="grid g4">
+        <div><label>تاریخ</label><input type="text" id="ex_date" data-jdp data-jdp-only-date readonly autocomplete="off" placeholder="انتخاب" style="background:#fff;cursor:pointer"></div>
+        <div><label>دسته</label><input id="ex_category" list="exCatList" placeholder="مواد اولیه، حقوق…"><datalist id="exCatList"></datalist></div>
+        <div><label>عنوان</label><input id="ex_title" placeholder="شرح هزینه"></div>
+        <div><label>مبلغ (تومان)</label><input type="number" id="ex_amount" min="0" inputmode="numeric"></div>
+      </div>
+      <div class="grid" style="margin-top:12px"><div><label>یادداشت</label><input id="ex_note" placeholder="اختیاری"></div></div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="ex_save">💾 ثبت هزینه</button></div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <h2 style="font-size:16px;margin:0;flex:1">هزینه‌های اخیر</h2>
+        <span class="muted" id="ex_total"></span>
+      </div>
+      <div style="overflow:auto">
+        <table id="exTable"><thead><tr><th>تاریخ</th><th>دسته</th><th>عنوان</th><th>مبلغ</th><th>یادداشت</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
 </main>
 
 <!-- ویرایش/افزودن محصول -->
@@ -302,6 +328,7 @@
   // فقط مدیر و حسابدار؛ app.js پس از تأیید دسترسی بارگذاری می‌شود
   guard(["admin","accountant","staff"]).then(p => {
     if (!p) return;
+    window.MY_PROFILE = p;
     const g = document.getElementById("gate"); if (g) g.remove();
     const s = document.createElement("script"); s.src = "app.js"; document.body.appendChild(s);
   });

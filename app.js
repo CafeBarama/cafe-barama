@@ -61,8 +61,60 @@ document.querySelectorAll("#nav button").forEach(b => {
     if (b.dataset.tab === "orders") loadOrders();
     if (b.dataset.tab === "menu") renderMenu();
     if (b.dataset.tab === "inventory") loadInventory();
+    if (b.dataset.tab === "expenses") loadExpensesList();
   };
 });
+
+/* ============================================================
+   هزینه‌ها (فقط مدیر/حسابدار) — به حسابداری iPro می‌رود
+   ============================================================ */
+const EX_CATS = ["مواد اولیه","حقوق و دستمزد","اجاره","قبوض","تنخواه","تجهیزات","بازاریابی","سایر"];
+function initExpenses(){
+  const role = window.MY_PROFILE && window.MY_PROFILE.role;
+  if (!(role === "admin" || role === "accountant")) return;   // نیرو هزینه نمی‌بیند
+  $("expTabBtn").style.display = "";
+  $("exCatList").innerHTML = EX_CATS.map(c => `<option value="${c}">`).join("");
+  $("ex_date").value = todayShamsiStr();
+  $("ex_save").onclick = saveExpense;
+}
+async function saveExpense(){
+  if (!db) return toast("اتصال دیتابیس نیست");
+  const amount = +$("ex_amount").value || 0;
+  const title = $("ex_title").value.trim();
+  if (!amount) return toast("مبلغ را وارد کن");
+  if (!title)  return toast("عنوان هزینه را وارد کن");
+  const rec = {
+    exp_date: shamsiToISO($("ex_date").value),
+    category: $("ex_category").value.trim() || "سایر",
+    title, amount, note: $("ex_note").value.trim() || null
+  };
+  const { error } = await db.from("expenses").insert(rec);
+  if (error){ console.error(error); return toast("خطا در ثبت هزینه"); }
+  toast("✓ هزینه ثبت شد");
+  $("ex_title").value=""; $("ex_amount").value=""; $("ex_note").value=""; $("ex_date").value=todayShamsiStr();
+  loadExpensesList();
+}
+async function loadExpensesList(){
+  if (!db) return;
+  const { data, error } = await db.from("expenses").select("*")
+    .order("exp_date",{ascending:false}).order("id",{ascending:false}).limit(50);
+  if (error){ console.error(error); return; }
+  const rows = data || [];
+  $("exTable").querySelector("tbody").innerHTML = rows.length
+    ? rows.map(x => `<tr>
+        <td>${jalali(x.exp_date)}</td><td>${x.category||"—"}</td><td>${x.title||"—"}</td>
+        <td><b>${fa(x.amount)}</b> ت</td><td class="muted">${x.note||""}</td>
+        <td><button class="btn danger sm" onclick="window.delExpense(${x.id})">حذف</button></td></tr>`).join("")
+    : `<tr><td colspan="6" class="muted" style="text-align:center;padding:20px">هزینه‌ای ثبت نشده.</td></tr>`;
+  const total = rows.reduce((a,x)=>a+(+x.amount||0),0);
+  $("ex_total").textContent = rows.length ? `جمع نمایش‌داده‌شده: ${fa(total)} تومان` : "";
+}
+window.delExpense = async (id) => {
+  if (!confirm("این هزینه حذف شود؟")) return;
+  const { error } = await db.from("expenses").delete().eq("id", id);
+  if (error){ console.error(error); return toast("خطا در حذف"); }
+  toast("حذف شد"); loadExpensesList();
+};
 
 /* ============================================================
    محصولات — بارگذاری و کش
@@ -593,3 +645,4 @@ renderCart();
 loadProducts();
 loadCustomers();
 loadInventory();
+initExpenses();

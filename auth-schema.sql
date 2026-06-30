@@ -115,8 +115,10 @@ create table if not exists expenses (
 create index if not exists expenses_date_idx on expenses (exp_date);
 alter table expenses enable row level security;
 drop policy if exists "expenses_admin" on expenses;
-create policy "expenses_admin" on expenses for all
-  using (public.cafe_role() = 'admin') with check (public.cafe_role() = 'admin');
+drop policy if exists "expenses_rw"    on expenses;
+create policy "expenses_rw" on expenses for all
+  using (public.cafe_role() in ('admin','accountant'))
+  with check (public.cafe_role() in ('admin','accountant'));
 
 -- ============================================================
 --  حضور و غیاب کافه  (نام cafe_attendance تا با اپ حقوق تداخل نکند)
