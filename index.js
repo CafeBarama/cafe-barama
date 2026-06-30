@@ -88,31 +88,53 @@ async function openUsers(){
   usersDlg.showModal();
   await loadUsers();
 }
+let USERS = [];
 async function loadUsers(){
   const { data, error } = await sb.from("profiles").select("*").order("created_at");
   if (error){ console.error(error); return toast("خطا در بارگذاری کاربران"); }
+  USERS = data || [];
   const tb = $("usersTable").querySelector("tbody");
-  tb.innerHTML = (data||[]).map(u => `<tr>
-    <td>${u.full_name || "—"}</td>
-    <td class="pill">${u.username || "—"}</td>
+  tb.innerHTML = USERS.map(u => `<tr>
+    <td>${u.full_name || "—"}${u.active===false?' <span class="muted" style="font-size:11px">(غیرفعال)</span>':""}</td>
+    <td><span class="pill">${u.username || "—"}</span></td>
+    <td>${ROLE_FA[u.role] || u.role}</td>
     <td>
-      <select onchange="window.setRole('${u.id}', this.value)" ${u.id===ME.id?"disabled":""}>
-        <option value="staff"      ${u.role==="staff"?"selected":""}>نیرو</option>
-        <option value="accountant" ${u.role==="accountant"?"selected":""}>حسابدار</option>
-        <option value="admin"      ${u.role==="admin"?"selected":""}>مدیر</option>
-      </select>
+      <button class="btn sm gray" onclick="window.editUser('${u.id}')">ویرایش</button>
+      <button class="btn danger" onclick="window.delUser('${u.id}')" ${u.id===ME.id?"disabled":""}>حذف</button>
     </td>
-    <td><input type="checkbox" ${u.active!==false?"checked":""} onchange="window.setActive('${u.id}', this.checked)" ${u.id===ME.id?"disabled":""}></td>
-    <td></td>
   </tr>`).join("");
 }
-window.setRole = async (id, role) => {
-  const { error } = await sb.from("profiles").update({ role }).eq("id", id);
-  toast(error ? "خطا" : "✓ نقش به‌روز شد");
+
+// ---- ویرایش ----
+const editDlg = $("editUserDlg");
+window.editUser = (id) => {
+  const u = USERS.find(x => x.id === id); if (!u) return;
+  $("eu_id").value = u.id;
+  $("eu_name").value = u.full_name || "";
+  $("eu_role").value = u.role || "staff";
+  $("eu_active").value = u.active === false ? "0" : "1";
+  editDlg.showModal();
 };
-window.setActive = async (id, active) => {
-  const { error } = await sb.from("profiles").update({ active }).eq("id", id);
-  toast(error ? "خطا" : (active ? "✓ فعال شد" : "غیرفعال شد"));
+$("eu_cancel").onclick = () => editDlg.close();
+$("eu_save").onclick = async () => {
+  const id = $("eu_id").value;
+  const rec = {
+    full_name: $("eu_name").value.trim() || null,
+    role: $("eu_role").value,
+    active: $("eu_active").value === "1"
+  };
+  const { error } = await sb.from("profiles").update(rec).eq("id", id);
+  if (error){ console.error(error); return toast("خطا در ذخیره"); }
+  toast("✓ ذخیره شد"); editDlg.close(); loadUsers();
+};
+
+// ---- حذف کامل (Auth + پروفایل) ----
+window.delUser = async (id) => {
+  const u = USERS.find(x => x.id === id);
+  if (!confirm(`کاربر «${u ? (u.full_name || u.username) : ""}» کامل حذف شود؟ (قابل بازگشت نیست)`)) return;
+  const { error } = await sb.rpc("cafe_delete_user", { uid: id });
+  if (error){ console.error(error); return toast("خطا در حذف (تابع user-admin.sql اجرا شده؟)"); }
+  toast("✓ حذف شد"); loadUsers();
 };
 
 $("nuAdd").onclick = async () => {

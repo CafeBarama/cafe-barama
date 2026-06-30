@@ -140,9 +140,35 @@
     </div>
     <div style="overflow:auto">
       <table id="usersTable">
-        <thead><tr><th>نام</th><th>نام کاربری</th><th>نقش</th><th>فعال</th><th></th></tr></thead>
+        <thead><tr><th>نام</th><th>نام کاربری</th><th>نقش</th><th>عملیات</th></tr></thead>
         <tbody></tbody>
       </table>
+    </div>
+  </div>
+</dialog>
+
+<!-- ویرایش کاربر -->
+<dialog id="editUserDlg">
+  <div class="modal-body">
+    <h2 style="margin:0 0 14px">ویرایش کاربر</h2>
+    <input type="hidden" id="eu_id">
+    <label>نام کامل</label><input id="eu_name">
+    <div class="grid2" style="margin-top:8px">
+      <div><label>نقش</label>
+        <select id="eu_role">
+          <option value="staff">نیرو</option>
+          <option value="accountant">حسابدار</option>
+          <option value="admin">مدیر</option>
+        </select>
+      </div>
+      <div><label>وضعیت</label>
+        <select id="eu_active"><option value="1">فعال</option><option value="0">غیرفعال</option></select>
+      </div>
+    </div>
+    <div class="muted" style="font-size:12px;margin-top:8px">نام کاربری قابل تغییر نیست (به حساب ورود وصل است).</div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn sm" id="eu_save">ذخیره</button>
+      <button class="btn sm gray" id="eu_cancel">انصراف</button>
     </div>
   </div>
 </dialog>
