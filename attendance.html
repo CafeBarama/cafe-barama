@@ -4,9 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>حضور و غیاب — کافه باراما</title>
-<link rel="manifest" href="app.webmanifest">
+<link rel="manifest" href="attendance.webmanifest">
 <meta name="theme-color" content="#2e7d6b">
 <link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="حضور باراما">
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
 <style>
   :root{--bg:#f6f7fb;--card:#fff;--ink:#1f2430;--muted:#7a8194;--line:#e7e9f0;--brand:#2e7d6b;
@@ -110,5 +114,9 @@
 <script src="config.js"></script>
 <script src="auth.js"></script>
 <script src="attendance.js"></script>
+<script>
+  if ("serviceWorker" in navigator)
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
 </body>
 </html>

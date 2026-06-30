@@ -1,11 +1,12 @@
 /* Service worker — چت تیم باراما (PWA) */
-const CACHE = "barama-app-v3";
+const CACHE = "barama-app-v4";
 const CORE = [
   "index.html", "index.js", "auth.js", "config.js",
   "orders.html", "app.js",
   "accounting.html", "accounting.js",
   "attendance.html", "attendance.js",
   "chat.html", "chat.js",
+  "app.webmanifest", "chat.webmanifest", "attendance.webmanifest",
   "icon-192.png", "icon-512.png"
 ];
 
