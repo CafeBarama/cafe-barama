@@ -42,7 +42,7 @@ document.querySelectorAll("#nav button").forEach(b=>{
 /* ---------- حضور من ---------- */
 async function refreshMe(){
   // رکورد باز (ورود بدون خروج)
-  const { data:open } = await sb.from("attendance").select("*")
+  const { data:open } = await sb.from("cafe_attendance").select("*")
     .eq("staff_uid", ME.id).is("clock_out", null).order("id",{ascending:false}).limit(1);
   OPEN = (open && open[0]) || null;
   const st=$("status"), bt=$("clockBtn");
@@ -60,12 +60,12 @@ async function refreshMe(){
 
 $("clockBtn").onclick = async () => {
   if (OPEN){
-    const { error } = await sb.from("attendance").update({ clock_out:new Date().toISOString() }).eq("id", OPEN.id);
+    const { error } = await sb.from("cafe_attendance").update({ clock_out:new Date().toISOString() }).eq("id", OPEN.id);
     if (error){ console.error(error); return toast("خطا در ثبت خروج"); }
     toast("✓ خروج ثبت شد");
   } else {
     const rec = { staff_uid:ME.id, staff_name:ME.full_name||ME.username, work_date:todayISO(), clock_in:new Date().toISOString() };
-    const { error } = await sb.from("attendance").insert(rec);
+    const { error } = await sb.from("cafe_attendance").insert(rec);
     if (error){ console.error(error); return toast("خطا در ثبت ورود"); }
     toast("✓ ورود ثبت شد");
   }
@@ -74,7 +74,7 @@ $("clockBtn").onclick = async () => {
 
 async function loadMyMonth(){
   const [from,to]=shamsiMonthRange();
-  const { data, error } = await sb.from("attendance").select("*")
+  const { data, error } = await sb.from("cafe_attendance").select("*")
     .eq("staff_uid", ME.id).gte("work_date",from).lte("work_date",to)
     .order("work_date",{ascending:false}).order("id",{ascending:false});
   if (error){ console.error(error); return; }
@@ -97,7 +97,7 @@ $("r_month").onclick = () => { const [a,b]=shamsiMonthRange(); $("r_from").value
 async function loadReport(){
   let from=$("r_from").value, to=$("r_to").value;
   if (!from||!to){ [from,to]=shamsiMonthRange(); $("r_from").value=from; $("r_to").value=to; }
-  const { data, error } = await sb.from("attendance").select("*")
+  const { data, error } = await sb.from("cafe_attendance").select("*")
     .gte("work_date",from).lte("work_date",to).order("work_date");
   if (error){ console.error(error); return toast("خطا در گزارش"); }
   const rows=data||[];
