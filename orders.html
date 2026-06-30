@@ -300,7 +300,7 @@
 <script src="auth.js"></script>
 <script>
   // فقط مدیر و حسابدار؛ app.js پس از تأیید دسترسی بارگذاری می‌شود
-  guard(["admin","accountant"]).then(p => {
+  guard(["admin","accountant","staff"]).then(p => {
     if (!p) return;
     const g = document.getElementById("gate"); if (g) g.remove();
     const s = document.createElement("script"); s.src = "app.js"; document.body.appendChild(s);

@@ -11,7 +11,7 @@ if (!sb) $("configBanner").style.display = "block";
 // ماژول‌ها و نقش‌های مجاز
 const MODULES = [
   { title:"حسابداری",    emoji:"💰", href:"accounting.html", roles:["admin"],            desc:"هزینه‌ها، درآمد و سود" },
-  { title:"سفارش‌گیری",  emoji:"🧾", href:"orders.html",     roles:["admin","accountant"], desc:"ثبت سفارش، محصولات، اقلام" },
+  { title:"سفارش‌گیری",  emoji:"🧾", href:"orders.html",     roles:["admin","accountant","staff"], desc:"ثبت سفارش، محصولات، اقلام" },
   { title:"حضور و غیاب", emoji:"🕒", href:"attendance.html", roles:["admin","staff"],     desc:"ثبت ورود و خروج" },
   { title:"چت تیم",      emoji:"💬", href:"chat.html",       roles:["admin","staff"],     desc:"گفتگوی نیروها" },
 ];
