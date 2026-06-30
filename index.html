@@ -72,6 +72,29 @@
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
     padding:12px 20px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
   #toast.show{opacity:1}
+
+  /* جمع‌وجورتر روی موبایل (مثل سامسونگ S24 FE) */
+  @media(max-width:480px){
+    body{font-size:13.5px}
+    .wrap{padding:0 14px}
+    .topbar{height:54px;gap:10px}
+    .logo{font-size:16px}
+    .chip{font-size:12px}
+    main{padding:18px 0 40px}
+    .hello{font-size:18px}
+    .hello small{font-size:12px;margin-top:2px}
+    .cards{gap:11px;margin-top:16px}
+    .mod{padding:14px;gap:12px;border-radius:14px}
+    .mod .ic{width:48px;height:48px;font-size:25px;border-radius:13px}
+    .mod b{font-size:15px}
+    .mod .d{font-size:12px}
+    .login-card{padding:22px 18px;max-width:340px}
+    .login-card h1{font-size:20px}
+    .login-card .sub{font-size:12px;margin-bottom:14px}
+    label{font-size:12.5px;margin:10px 0 5px}
+    input,select{font-size:14px;padding:11px 12px}
+    .btn{font-size:14px;padding:12px 16px}
+  }
 </style>
 </head>
 <body>
