@@ -10,7 +10,7 @@ if (!sb) $("configBanner").style.display = "block";
 
 // ماژول‌ها و نقش‌های مجاز
 const MODULES = [
-  { title:"حسابداری",    emoji:"💰", href:"accounting.html", roles:["admin"],            desc:"هزینه‌ها، درآمد و سود" },
+  { title:"حسابداری iPro", emoji:"💰", href:"https://cafebarama.github.io/ipro-accounting/", roles:["admin"], desc:"حقوق و دستمزد، حضور، مرخصی کارمندان" },
   { title:"سفارش‌گیری",  emoji:"🧾", href:"orders.html",     roles:["admin","accountant","staff"], desc:"ثبت سفارش، محصولات، اقلام" },
   { title:"حضور و غیاب", emoji:"🕒", href:"attendance.html", roles:["admin","staff"],     desc:"ثبت ورود و خروج" },
   { title:"چت تیم",      emoji:"💬", href:"chat.html",       roles:["admin","staff"],     desc:"گفتگوی نیروها" },
