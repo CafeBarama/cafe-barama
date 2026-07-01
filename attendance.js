@@ -58,18 +58,41 @@ async function refreshMe(){
   loadMyMonth();
 }
 
+function getLocation(){
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error("مرورگر موقعیت مکانی را پشتیبانی نمی‌کند"));
+    navigator.geolocation.getCurrentPosition(
+      p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => reject(new Error("دسترسی موقعیت لازم است — GPS را روشن کن و اجازه بده")),
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  });
+}
+function attError(error){
+  const msg = (error && error.message) || "";
+  const m = msg.match(/OUT_OF_RANGE:(\d+)/);
+  if (m) return toast(`خارج از محدودهٔ کافه (${fa(m[1])} متر). باید داخل شعاع ۵۰ متری کافه باشی.`);
+  if (msg.includes("NO_LOCATION")) return toast("موقعیت دریافت نشد؛ دوباره تلاش کن");
+  if (msg.includes("ALREADY_IN")) { toast("ورودت قبلاً ثبت شده"); return refreshMe(); }
+  if (msg.includes("NO_OPEN"))    { toast("ورود بازی نداری"); return refreshMe(); }
+  toast("خطا: " + msg);
+}
+
 $("clockBtn").onclick = async () => {
-  if (OPEN){
-    const { error } = await sb.from("cafe_attendance").update({ clock_out:new Date().toISOString() }).eq("id", OPEN.id);
-    if (error){ console.error(error); return toast("خطا در ثبت خروج"); }
-    toast("✓ خروج ثبت شد");
-  } else {
-    const rec = { staff_uid:ME.id, staff_name:ME.full_name||ME.username, work_date:todayISO(), clock_in:new Date().toISOString() };
-    const { error } = await sb.from("cafe_attendance").insert(rec);
-    if (error){ console.error(error); return toast("خطا در ثبت ورود"); }
-    toast("✓ ورود ثبت شد");
+  const btn = $("clockBtn"); btn.disabled = true;
+  const wasOpen = !!OPEN;
+  const prev = btn.textContent; btn.textContent = "در حال گرفتن موقعیت…";
+  try {
+    const pos = await getLocation();
+    const fn = wasOpen ? "cafe_att_check_out" : "cafe_att_check_in";
+    const { error } = await sb.rpc(fn, { p_lat: pos.lat, p_lng: pos.lng });
+    if (error){ console.error(error); attError(error); }
+    else { toast(wasOpen ? "✓ خروج ثبت شد" : "✓ ورود ثبت شد"); refreshMe(); }
+  } catch(e){
+    toast(e.message || "خطا در دریافت موقعیت");
+  } finally {
+    btn.disabled = false; if (btn.textContent === "در حال گرفتن موقعیت…") btn.textContent = prev;
   }
-  refreshMe();
 };
 
 async function loadMyMonth(){
