@@ -151,6 +151,7 @@ async function loadReport(){
   ME = await guard(["admin","staff"]);
   if (!ME) return;
   $("gate").remove();
+  try { await sb.rpc("cafe_auto_checkout"); } catch(e){}   // بستن خروج‌های فراموش‌شده
   $("meName").textContent = `${ME.full_name||ME.username}`;
   if (ME.role==="admin"){ $("reportNav").style.display=""; const [a,b]=shamsiMonthRange(); $("r_from").value=a; $("r_to").value=b; }
   refreshMe();
