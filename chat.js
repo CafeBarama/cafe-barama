@@ -9,6 +9,15 @@ const db = (typeof sb !== "undefined") ? sb : null;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+// متن با هایلایتِ منشن (@نام‌کاربری)
+function renderText(t){
+  return esc(t).replace(/@([A-Za-z0-9_.\-]+)/g, (_m,u)=>`<span class="ment">@${u}</span>`);
+}
+function mentionsMe(t){
+  if (!ME || !ME.username) return false;
+  const u = ME.username.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp("@"+u+"(?![A-Za-z0-9_.\\-])", "i").test(t || "");
+}
 let TOAST_T;
 function toast(msg){
   const t = $("toast"); t.textContent = msg; t.classList.add("show");
@@ -37,6 +46,7 @@ let SEEN = new Set();     // id پیام‌های نمایش‌داده‌شده
 let LAST_TS = null;       // زمان آخرین پیام برای واکشی افزایشی
 let POLL_T = null;
 const UNREAD = {};        // {channel_id: count}
+let ONLINE = [], MEMBERS = [], MY_LAST_TS = 0, PRESENCE_T = null;
 
 /* ============================================================
    صدا و نوتیفیکیشن
@@ -157,6 +167,53 @@ async function startApp(){
   if (CHANNELS.length) selectChannel(CHANNELS[0].id);
   if (POLL_T) clearInterval(POLL_T);
   POLL_T = setInterval(poll, 3000);
+  heartbeat(); refreshPresence();
+  if (PRESENCE_T) clearInterval(PRESENCE_T);
+  PRESENCE_T = setInterval(() => { heartbeat(); refreshPresence(); }, 12000);
+}
+
+/* ============================================================
+   حضور آنلاین + اعضا (برای منشن)
+   ============================================================ */
+async function heartbeat(){
+  try { await db.from("chat_presence").upsert(
+    { uid: ME.id, name: ME.name, username: ME.username, last_seen: new Date().toISOString() },
+    { onConflict: "uid" }); } catch(e){}
+}
+async function refreshPresence(){
+  const { data } = await db.from("chat_presence").select("*");
+  MEMBERS = data || [];
+  const cutoff = Date.now() - 45000;
+  ONLINE = MEMBERS.filter(p => new Date(p.last_seen).getTime() > cutoff);
+  $("onlineBtn").textContent = "🟢 " + ONLINE.length.toLocaleString("fa-IR");
+}
+$("onlineBtn").onclick = () => {
+  if (!ONLINE.length) return toast("کسی آنلاین نیست");
+  toast("آنلاین: " + ONLINE.map(p => p.name || p.username).join("، "));
+};
+
+/* ============================================================
+   خوانده‌شدن پیام
+   ============================================================ */
+async function markRead(){
+  if (!CUR) return;
+  try { await db.from("chat_reads").upsert(
+    { uid: ME.id, channel_id: CUR.id, last_read_at: new Date().toISOString() },
+    { onConflict: "uid,channel_id" }); } catch(e){}
+}
+async function refreshSeen(){
+  if (!CUR) return;
+  const box = $("messages");
+  const old = box.querySelector(".seen"); if (old) old.remove();
+  if (!MY_LAST_TS) return;                       // پیام فرستاده‌ای وجود ندارد
+  const { data } = await db.from("chat_reads").select("*").eq("channel_id", CUR.id);
+  const others = (data || []).filter(r => r.uid !== ME.id);
+  const readers = others.filter(r => new Date(r.last_read_at).getTime() >= MY_LAST_TS);
+  const el = document.createElement("div"); el.className = "seen";
+  el.innerHTML = readers.length
+    ? `✓✓ خوانده‌شده${readers.length>1?` توسط <b>${readers.length.toLocaleString("fa-IR")}</b> نفر`:""}`
+    : "✓ ارسال‌شده";
+  box.appendChild(el);
 }
 
 async function loadChannels(){
@@ -186,11 +243,12 @@ async function selectChannel(id){
   CUR = CHANNELS.find(c => c.id === id);
   if (!CUR) return;
   UNREAD[id] = 0;
-  SEEN = new Set(); LAST_TS = null;
+  SEEN = new Set(); LAST_TS = null; MY_LAST_TS = 0;
   $("hTitle").textContent = (CUR.emoji?CUR.emoji+" ":"") + CUR.name;
   $("messages").innerHTML = `<div class="empty">در حال بارگذاری…</div>`;
   renderChannels();
   await loadMessages();
+  markRead(); refreshSeen();
 }
 
 /* ============================================================
@@ -215,6 +273,7 @@ function appendMessage(m, prevDayKey){
 
   const box = $("messages");
   const emptyEl = box.querySelector(".empty"); if (emptyEl) emptyEl.remove();
+  const seenEl = box.querySelector(".seen"); if (seenEl) seenEl.remove();   // پیام‌ها همیشه قبل از نوار «خوانده‌شده»
 
   // جداکنندهٔ تاریخ
   const lastSep = box.dataset.lastday;
@@ -227,20 +286,21 @@ function appendMessage(m, prevDayKey){
   }
 
   const mine = ME && m.sender_uid === ME.id;
+  if (mine){ const ts = new Date(m.created_at).getTime(); if (ts > MY_LAST_TS) MY_LAST_TS = ts; }
   const el = document.createElement("div");
-  el.className = "msg " + (mine ? "mine" : "theirs");
+  el.className = "msg " + (mine ? "mine" : "theirs") + (!mine && mentionsMe(m.text) ? " mentioned" : "");
 
   let inner = "";
   if (!mine) inner += `<div class="name">${esc(m.staff_name || "نامشخص")}</div>`;
   if (m.type === "image" && m.media_url){
     inner += `<img src="${esc(m.media_url)}" onclick="window.showImg('${esc(m.media_url)}')">`;
-    if (m.text) inner += `<div class="body">${esc(m.text)}</div>`;
+    if (m.text) inner += `<div class="body">${renderText(m.text)}</div>`;
   } else if (m.type === "voice" && m.media_url){
     inner += `<audio controls src="${esc(m.media_url)}"></audio>`;
   } else if (m.type === "list"){
-    inner += `<div class="body list">${esc(m.text)}</div>`;
+    inner += `<div class="body list">${renderText(m.text)}</div>`;
   } else {
-    inner += `<div class="body">${esc(m.text)}</div>`;
+    inner += `<div class="body">${renderText(m.text)}</div>`;
   }
   inner += `<div class="time">${timeFa(m.created_at)}</div>`;
   if (mine) inner += `<button class="del" onclick="window.delMsg(${m.id})">✕</button>`;
@@ -272,8 +332,12 @@ async function poll(){
   if ((data||[]).length && stick) scrollDown();
   if (incoming.length){
     alertSound();
-    if (document.hidden) notify(incoming[incoming.length-1], CUR.name);  // وقتی اپ پنهان است
+    const mentioned = incoming.find(m => mentionsMe(m.text));
+    if (document.hidden || mentioned) notify(mentioned || incoming[incoming.length-1], CUR.name);
+    if (mentioned && !document.hidden) toast("شما منشن شدید 🔔");
   }
+  if (!document.hidden) markRead();   // در حال دیدن کانالم
+  refreshSeen();                      // به‌روزرسانی وضعیت خوانده‌شدن پیام‌های من
 
   // شمارش خوانده‌نشدهٔ کانال‌های دیگر
   pollUnread();
@@ -309,6 +373,7 @@ async function send(payload){
   if (error){ console.error(error); return toast("خطا در ارسال پیام"); }
   appendMessage(data);   // نمایش فوری (poll با SEEN تکرارش نمی‌کند)
   scrollDown();
+  markRead(); refreshSeen();
 }
 
 $("composer").addEventListener("submit", e => {
@@ -317,8 +382,58 @@ $("composer").addEventListener("submit", e => {
   const text = $("msgInput").value.trim();
   if (!text) return;
   $("msgInput").value = "";
+  hideMention();
   send({ type:"text", text });
 });
+
+/* ============================================================
+   منشن (@) — تکمیل خودکار نام اعضا
+   ============================================================ */
+const mInput = $("msgInput"), mPop = $("mentionPop");
+let mentStart = -1, mentActive = 0;
+mInput.addEventListener("input", updateMention);
+mInput.addEventListener("keydown", mentionKey);
+mInput.addEventListener("blur", () => setTimeout(hideMention, 150));
+
+function updateMention(){
+  const v = mInput.value, pos = mInput.selectionStart;
+  const m = v.slice(0, pos).match(/@([A-Za-z0-9_.\-]*)$/);
+  if (!m){ hideMention(); return; }
+  mentStart = pos - m[0].length;
+  const q = m[1].toLowerCase();
+  const cutoff = Date.now() - 45000;
+  const list = MEMBERS.filter(p => p.uid !== ME.id).filter(p =>
+    !q || (p.username||"").toLowerCase().includes(q) || (p.name||"").toLowerCase().includes(q)
+  ).slice(0, 8);
+  if (!list.length){ hideMention(); return; }
+  mentActive = 0;
+  mPop.innerHTML = list.map((p,i) => {
+    const on = new Date(p.last_seen).getTime() > cutoff;
+    return `<div class="mi ${i===0?'active':''}" data-u="${esc(p.username)}">
+      <span class="od ${on?'on':''}"></span>
+      <div><b>${esc(p.name||p.username)}</b> <small>@${esc(p.username)}</small></div></div>`;
+  }).join("");
+  mPop.querySelectorAll(".mi").forEach(el => el.onclick = () => pickMention(el.dataset.u));
+  mPop.style.display = "block";
+}
+function hideMention(){ mPop.style.display = "none"; mentStart = -1; }
+function pickMention(username){
+  const v = mInput.value, pos = mInput.selectionStart;
+  mInput.value = v.slice(0, mentStart) + "@" + username + " " + v.slice(pos);
+  const np = mentStart + username.length + 2;
+  mInput.focus(); mInput.setSelectionRange(np, np);
+  hideMention();
+}
+function mentionKey(e){
+  if (mPop.style.display !== "block") return;
+  const items = mPop.querySelectorAll(".mi");
+  if (e.key === "ArrowDown"){ e.preventDefault(); mentActive = Math.min(mentActive+1, items.length-1); }
+  else if (e.key === "ArrowUp"){ e.preventDefault(); mentActive = Math.max(mentActive-1, 0); }
+  else if (e.key === "Enter"){ if (items[mentActive]){ e.preventDefault(); pickMention(items[mentActive].dataset.u); return; } }
+  else if (e.key === "Escape"){ hideMention(); return; }
+  else return;
+  items.forEach((el,i) => el.classList.toggle("active", i===mentActive));
+}
 
 // ---------- ارسال لیست خرید از اپ ----------
 $("listBtn").onclick = async () => {
@@ -425,7 +540,7 @@ $("lightbox").onclick = () => { $("lightbox").style.display = "none"; $("lightbo
   if (!db) return;
   const p = await guard(["admin", "staff"]);
   if (!p) return;                       // guard ریدایرکت کرده
-  ME = { id: p.id, name: p.full_name || p.username };
+  ME = { id: p.id, name: p.full_name || p.username, username: p.username || "" };
   $("gate").remove();
   startApp();
 })();
