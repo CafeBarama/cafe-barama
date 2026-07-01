@@ -326,7 +326,7 @@
 <script src="auth.js"></script>
 <script>
   // فقط مدیر و حسابدار؛ app.js پس از تأیید دسترسی بارگذاری می‌شود
-  guard(["admin","accountant","staff"]).then(p => {
+  guard(["admin","accountant"]).then(p => {
     if (!p) return;
     window.MY_PROFILE = p;
     const g = document.getElementById("gate"); if (g) g.remove();
