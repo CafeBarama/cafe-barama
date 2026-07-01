@@ -19,7 +19,7 @@ declare
   c_radius constant double precision := 50;
   dist double precision; nm text;
 begin
-  if public.cafe_role() not in ('admin','staff') then raise exception 'دسترسی ندارید'; end if;
+  if coalesce(public.cafe_role(),'') not in ('admin','staff') then raise exception 'دسترسی ندارید'; end if;
   if p_lat is null or p_lng is null then raise exception 'NO_LOCATION'; end if;
   dist := 2*6371000*asin(sqrt(
      power(sin(radians(p_lat - c_lat)/2),2) +
@@ -43,7 +43,7 @@ declare
   c_radius constant double precision := 50;
   dist double precision; rec record;
 begin
-  if public.cafe_role() not in ('admin','staff') then raise exception 'دسترسی ندارید'; end if;
+  if coalesce(public.cafe_role(),'') not in ('admin','staff') then raise exception 'دسترسی ندارید'; end if;
   if p_lat is null or p_lng is null then raise exception 'NO_LOCATION'; end if;
   dist := 2*6371000*asin(sqrt(
      power(sin(radians(p_lat - c_lat)/2),2) +
