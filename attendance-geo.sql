@@ -14,8 +14,8 @@ alter table cafe_attendance add column if not exists out_lng double precision;
 create or replace function public.cafe_att_check_in(p_lat double precision, p_lng double precision)
 returns json language plpgsql security definer set search_path = public as $$
 declare
-  c_lat    constant double precision := 29.633853437124454;
-  c_lng    constant double precision := 52.47678888090585;
+  c_lat    constant double precision := 29.633890739259787;
+  c_lng    constant double precision := 52.477035644120626;
   c_radius constant double precision := 50;
   dist double precision; nm text;
 begin
@@ -38,8 +38,8 @@ end $$;
 create or replace function public.cafe_att_check_out(p_lat double precision, p_lng double precision)
 returns json language plpgsql security definer set search_path = public as $$
 declare
-  c_lat    constant double precision := 29.633853437124454;
-  c_lng    constant double precision := 52.47678888090585;
+  c_lat    constant double precision := 29.633890739259787;
+  c_lng    constant double precision := 52.477035644120626;
   c_radius constant double precision := 50;
   dist double precision; rec record;
 begin

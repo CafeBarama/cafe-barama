@@ -47,6 +47,8 @@ let LAST_TS = null;       // زمان آخرین پیام برای واکشی ا
 let POLL_T = null;
 const UNREAD = {};        // {channel_id: count}
 let ONLINE = [], MEMBERS = [], MY_LAST_TS = 0, PRESENCE_T = null;
+const MSGMAP = {};        // id → پیام (برای منوی ریپلای/فوروارد)
+let REPLYING = null;      // پیام در حال ریپلای
 
 /* ============================================================
    صدا و نوتیفیکیشن
@@ -60,6 +62,24 @@ function unlockAudio(){
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === "suspended") audioCtx.resume();
   } catch(e){}
+  // آماده‌سازی فایل صوتی نوتیفیکیشن با تعامل کاربر
+  try {
+    const a = document.getElementById("notifyAudio");
+    if (a && !a._primed){ a._primed = true; a.muted = true;
+      const p = a.play();
+      if (p && p.then) p.then(()=>{ a.pause(); a.currentTime=0; a.muted=false; }).catch(()=>{ a.muted=false; });
+      else a.muted = false;
+    }
+  } catch(e){}
+}
+
+// پخش صدای سفارشی هنگام پیام جدید (اگر نشد، گفتار)
+function playNotify(){
+  try {
+    const a = document.getElementById("notifyAudio");
+    if (a){ a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(()=>speakName()); }
+    else speakName();
+  } catch(e){ speakName(); }
 }
 
 // صدای «دینگ» دو‌نتی بدون فایل (Web Audio) — فقط در صورت نبودِ گفتار
@@ -109,7 +129,7 @@ function alertSound(){
   const now = Date.now();
   if (now - lastSound < 1500) return;     // جلوگیری از تکرار سریع
   lastSound = now;
-  speakName();
+  playNotify();
 }
 
 function msgPreview(m){
@@ -151,7 +171,7 @@ $("soundBtn").onclick = () => {
   soundOn = !soundOn;
   localStorage.setItem("barama_chat_sound", soundOn ? "on" : "off");
   refreshSoundBtn();
-  if (soundOn){ unlockAudio(); warmupSpeech(); speakName(); toast("صدا روشن شد"); }
+  if (soundOn){ unlockAudio(); playNotify(); toast("صدا روشن شد"); }
   else { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch(e){} toast("صدا خاموش شد"); }
 };
 refreshSoundBtn();
@@ -285,13 +305,17 @@ function appendMessage(m, prevDayKey){
     box.dataset.lastday = dayKey(m.created_at);
   }
 
+  MSGMAP[m.id] = m;
   const mine = ME && m.sender_uid === ME.id;
   if (mine){ const ts = new Date(m.created_at).getTime(); if (ts > MY_LAST_TS) MY_LAST_TS = ts; }
   const el = document.createElement("div");
   el.className = "msg " + (mine ? "mine" : "theirs") + (!mine && mentionsMe(m.text) ? " mentioned" : "");
+  el.dataset.id = m.id;
 
   let inner = "";
   if (!mine) inner += `<div class="name">${esc(m.staff_name || "نامشخص")}</div>`;
+  if (m.fwd) inner += `<div class="fwd">↪️ فوروارد شده</div>`;
+  if (m.reply_text) inner += `<div class="quote"><b>${esc(m.reply_name||"")}</b><span>${esc(m.reply_text)}</span></div>`;
   if (m.type === "image" && m.media_url){
     inner += `<img src="${esc(m.media_url)}" onclick="window.showImg('${esc(m.media_url)}')">`;
     if (m.text) inner += `<div class="body">${renderText(m.text)}</div>`;
@@ -381,9 +405,11 @@ $("composer").addEventListener("submit", e => {
   unlockAudio(); warmupSpeech();
   const text = $("msgInput").value.trim();
   if (!text) return;
+  const extra = REPLYING ? { reply_to: REPLYING.id, reply_name: REPLYING.name, reply_text: REPLYING.text } : {};
   $("msgInput").value = "";
   hideMention();
-  send({ type:"text", text });
+  send({ type:"text", text, ...extra });
+  clearReply();
 });
 
 /* ============================================================
@@ -532,6 +558,68 @@ window.delMsg = async (id) => {
 // ---------- نمایش بزرگ عکس ----------
 window.showImg = (url) => { $("lightboxImg").src = url; $("lightbox").style.display = "flex"; };
 $("lightbox").onclick = () => { $("lightbox").style.display = "none"; $("lightboxImg").src = ""; };
+
+/* ============================================================
+   منوی پیام: ریپلای / فوروارد / حذف
+   ============================================================ */
+function msgSnippet(m){
+  if (m.type === "image") return "📷 عکس";
+  if (m.type === "voice") return "🎤 پیام صوتی";
+  if (m.type === "list")  return "🛒 لیست";
+  return (m.text || "").slice(0, 80);
+}
+const sheet = $("sheet"), sheetBox = $("sheetBox");
+function closeSheet(){ sheet.classList.remove("show"); }
+sheet.onclick = (e) => { if (e.target === sheet) closeSheet(); };
+
+$("messages").addEventListener("click", (e) => {
+  if (e.target.closest("img, audio, a, button")) return;
+  const el = e.target.closest(".msg"); if (!el) return;
+  const m = MSGMAP[+el.dataset.id]; if (!m) return;
+  openMsgMenu(m);
+});
+
+function openMsgMenu(m){
+  const mine = ME && m.sender_uid === ME.id;
+  sheetBox.innerHTML = `
+    <div class="sheet-title">${esc(msgSnippet(m))}</div>
+    <div class="sh" data-a="reply"><span class="em">↩️</span> پاسخ (ریپلای)</div>
+    <div class="sh" data-a="forward"><span class="em">↪️</span> فوروارد</div>
+    ${mine?`<div class="sh danger" data-a="delete"><span class="em">🗑️</span> حذف</div>`:""}`;
+  sheetBox.querySelectorAll(".sh").forEach(b => b.onclick = () => {
+    const a = b.dataset.a;
+    if (a === "reply"){ startReply(m); closeSheet(); }
+    else if (a === "forward") openForward(m);
+    else if (a === "delete"){ closeSheet(); window.delMsg(m.id); }
+  });
+  sheet.classList.add("show");
+}
+
+// ریپلای
+function startReply(m){
+  REPLYING = { id: m.id, name: (m.sender_uid===ME.id ? ME.name : (m.staff_name||"")), text: msgSnippet(m) };
+  $("rbName").textContent = "پاسخ به " + REPLYING.name;
+  $("rbText").textContent = REPLYING.text;
+  $("replyBar").classList.add("show");
+  $("msgInput").focus();
+}
+function clearReply(){ REPLYING = null; $("replyBar").classList.remove("show"); }
+$("rbCancel").onclick = clearReply;
+
+// فوروارد
+function openForward(m){
+  sheetBox.innerHTML = `<div class="sheet-title">فوروارد به کدام کانال؟</div>` +
+    CHANNELS.map(c => `<div class="sh" data-c="${c.id}"><span class="em">${c.emoji||"#"}</span> ${esc(c.name)}</div>`).join("");
+  sheetBox.querySelectorAll(".sh").forEach(b => b.onclick = () => { forwardMessage(m, +b.dataset.c); closeSheet(); });
+}
+async function forwardMessage(m, channelId){
+  const rec = { channel_id: channelId, sender_uid: ME.id, staff_name: ME.name,
+    type: m.type||"text", text: m.text||null, media_url: m.media_url||null, fwd: true };
+  const { data, error } = await db.from("messages").insert(rec).select().single();
+  if (error){ console.error(error); return toast("خطا در فوروارد (chat-reply.sql اجرا شده؟)"); }
+  toast("↪️ فوروارد شد");
+  if (CUR && channelId === CUR.id){ appendMessage(data); scrollDown(); }
+}
 
 /* ============================================================
    شروع (با محافظ دسترسی: فقط مدیر و نیرو)

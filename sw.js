@@ -1,5 +1,5 @@
 /* Service worker — چت تیم باراما (PWA) */
-const CACHE = "barama-app-v10";
+const CACHE = "barama-app-v11";
 const CORE = [
   "index.html", "index.js", "auth.js", "config.js",
   "orders.html", "app.js",
@@ -7,7 +7,7 @@ const CORE = [
   "attendance.html", "attendance.js",
   "chat.html", "chat.js",
   "app.webmanifest", "chat.webmanifest", "attendance.webmanifest",
-  "icon-192.png", "icon-512.png"
+  "notify.m4a", "icon-192.png", "icon-512.png"
 ];
 
 self.addEventListener("install", (e) => {
