@@ -31,7 +31,9 @@ begin
   return n;
 end $$;
 
-grant execute on function public.cafe_auto_checkout() to authenticated;
+-- فقط کاربر واردشده؛ زمان‌بند pg_cron به‌عنوان postgres مستقل از این اجرا می‌شود
+revoke execute on function public.cafe_auto_checkout() from public;
+grant  execute on function public.cafe_auto_checkout() to authenticated;
 
 -- ---------- زمان‌بند خودکار هر ۳۰ دقیقه (اگر pg_cron در دسترس باشد) ----------
 do $$
