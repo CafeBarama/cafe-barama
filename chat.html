@@ -20,15 +20,16 @@
     --mine:#d6f1e6; --accent:#c98a2b; --danger:#d8584f;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%}
+  html,body{height:100%;overflow-x:hidden}
   body{margin:0;font-family:Vazirmatn,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
   button,input,select,textarea{font-family:inherit}
   #gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--muted);z-index:50}
 
-  #app{display:flex;flex-direction:column;height:100dvh}
+  #app{display:flex;flex-direction:column;height:100dvh;width:100%;overflow-x:hidden}
   header{background:var(--brand);color:#fff;display:flex;align-items:center;gap:10px;padding:10px 14px;flex:0 0 auto}
-  header .title{font-weight:800;font-size:17px}
-  header .who{font-size:12px;opacity:.85}
+  header>div:first-child{min-width:0}
+  header .title{font-weight:800;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header .who{font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   header .spacer{flex:1}
   header button,header a{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:10px;
     padding:8px 11px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
@@ -61,7 +62,7 @@
   .empty{text-align:center;color:var(--muted);padding:50px 10px;font-size:14px}
 
   .composer{flex:0 0 auto;background:var(--panel);border-top:1px solid var(--line);padding:8px 10px;display:flex;align-items:center;gap:8px}
-  .composer input.text{flex:1;border-radius:22px;padding:11px 16px;border:1px solid var(--line);background:#fbfbfd}
+  .composer input.text{flex:1;min-width:0;border-radius:22px;padding:11px 16px;border:1px solid var(--line);background:#fbfbfd}
   .iconbtn{flex:0 0 auto;width:42px;height:42px;border-radius:50%;border:0;background:#eef0f5;color:var(--brand);
     font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .iconbtn.send{background:var(--brand);color:#fff}
@@ -72,6 +73,18 @@
   .toast.show{opacity:1}
   #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:70;padding:20px}
   #lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+
+  @media(max-width:430px){
+    header{padding:9px 12px;gap:8px}
+    header .title{font-size:16px}
+    .channels{padding:9px 10px;gap:7px}
+    .chan{padding:7px 12px;font-size:13px}
+    #messages{padding:12px 10px 6px}
+    .msg{max-width:82%}
+    .composer{padding:7px 8px;gap:6px}
+    .composer input.text{padding:10px 14px}
+    .iconbtn{width:40px;height:40px;font-size:18px}
+  }
 </style>
 </head>
 <body>
